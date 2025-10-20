@@ -48,8 +48,6 @@ import org.dancorp.cyberclubadmin.ui.theme.h5
 import org.dancorp.cyberclubadmin.ui.widgets.AlertCard
 import java.text.SimpleDateFormat
 import java.util.Locale
-import kotlin.collections.filter
-import kotlin.collections.toMutableList
 
 @Composable
 fun NotificationsScreen() {

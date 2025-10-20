@@ -29,7 +29,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SegmentedButtonDefaults.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -53,7 +52,6 @@ import org.dancorp.cyberclubadmin.ui.theme.body2
 import org.dancorp.cyberclubadmin.ui.theme.h5
 import org.dancorp.cyberclubadmin.ui.theme.h6
 import org.dancorp.cyberclubadmin.ui.widgets.AlertCard
-import kotlin.collections.filter
 
 @Composable
 fun GamesScreen() {
