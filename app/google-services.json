@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "806086254505",
+    "project_id": "cyberclubadmin-5a514",
+    "storage_bucket": "cyberclubadmin-5a514.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:806086254505:android:92ff8242a1ab88811deeb8",
+        "android_client_info": {
+          "package_name": "org.dancorp.cyberclubadmin"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBywXdjfIjW0EWK0zO7NhsHj_gyftsOy8s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
