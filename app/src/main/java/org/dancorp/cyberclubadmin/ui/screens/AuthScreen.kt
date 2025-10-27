@@ -36,8 +36,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.runBlocking
 import org.dancorp.cyberclubadmin.data.Store
 import org.dancorp.cyberclubadmin.model.User
+import org.dancorp.cyberclubadmin.service.AbstractAuthService
+import org.dancorp.cyberclubadmin.service.AbstractUserService
 import org.dancorp.cyberclubadmin.ui.theme.body1
 import org.dancorp.cyberclubadmin.ui.theme.body2
 import org.dancorp.cyberclubadmin.ui.theme.h4
@@ -45,16 +48,24 @@ import org.dancorp.cyberclubadmin.ui.theme.h6
 import org.dancorp.cyberclubadmin.ui.widgets.TabButton
 import java.util.Date
 
+private enum class AuthTab {
+    SIGN_IN,
+    SIGN_UP
+}
 @Composable
 fun AuthScreen(
+    authService: AbstractAuthService,
+    userService: AbstractUserService,
     onLoginSuccess: (User) -> Unit
 ) {
-    var loginEmail by remember { mutableStateOf("") }
-    var loginPassword by remember { mutableStateOf("") }
-    var registerEmail by remember { mutableStateOf("") }
-    var registerPassword by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
-    var selectedTab by remember { mutableStateOf("login") }
+    var signInEmail by remember { mutableStateOf("") }
+    var signInPassword by remember { mutableStateOf("") }
+
+    var signUpEmail by remember { mutableStateOf("") }
+    var signUpPassword by remember { mutableStateOf("") }
+    var signUpConfirmPassword by remember { mutableStateOf("") }
+
+    var selectedTab by remember { mutableStateOf(AuthTab.SIGN_IN) }
 
     val context = LocalContext.current
 
@@ -115,14 +126,14 @@ fun AuthScreen(
             ) {
                 TabButton(
                     text = "Вход",
-                    isSelected = selectedTab == "login",
-                    onClick = { selectedTab = "login" },
+                    isSelected = selectedTab == AuthTab.SIGN_IN,
+                    onClick = { selectedTab = AuthTab.SIGN_IN },
                     modifier = Modifier.weight(1f)
                 )
                 TabButton(
                     text = "Регистрация",
-                    isSelected = selectedTab == "register",
-                    onClick = { selectedTab = "register" },
+                    isSelected = selectedTab == AuthTab.SIGN_UP,
+                    onClick = { selectedTab = AuthTab.SIGN_UP },
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -130,23 +141,22 @@ fun AuthScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             when (selectedTab) {
-                "login" -> LoginTab(
-                    email = loginEmail,
-                    password = loginPassword,
-                    onEmailChange = { loginEmail = it },
-                    onPasswordChange = { loginPassword = it },
-                    onLogin = {
-                        val users = Store.getUsers()
-                        val user = users.find { it.email == loginEmail && it.password == loginPassword }
+                AuthTab.SIGN_IN -> SignInTab(
+                    email = signInEmail,
+                    password = signInPassword,
+                    onEmailChange = { signInEmail = it },
+                    onPasswordChange = { signInPassword = it },
+                    onSignIn = {
+                        val user = runBlocking { authService.signIn(signInEmail, signInPassword) }
 
                         if (user == null) {
                             Toast.makeText(context, "Неверный email или пароль", Toast.LENGTH_SHORT).show()
-                            return@LoginTab
+                            return@SignInTab
                         }
 
                         if (!user.isVerified) {
                             Toast.makeText(context, "Ваш аккаунт не подтвержден. Обратитесь к администратору.", Toast.LENGTH_SHORT).show()
-                            return@LoginTab
+                            return@SignInTab
                         }
 
                         Store.setCurrentUser(user)
@@ -154,59 +164,21 @@ fun AuthScreen(
                         onLoginSuccess(user)
                     }
                 )
-                "register" -> RegisterTab(
-                    email = registerEmail,
-                    password = registerPassword,
-                    confirmPassword = confirmPassword,
-                    onEmailChange = { registerEmail = it },
-                    onPasswordChange = { registerPassword = it },
-                    onConfirmPasswordChange = { confirmPassword = it },
-                    onRegister = {
-                        if (registerPassword != confirmPassword) {
-                            Toast.makeText(context, "Пароли не совпадают", Toast.LENGTH_SHORT).show()
-                            return@RegisterTab
+                AuthTab.SIGN_UP -> SignUpTab(
+                    email = signUpEmail,
+                    password = signUpPassword,
+                    confirmPassword = signUpConfirmPassword,
+                    onEmailChange = { signUpEmail = it },
+                    onPasswordChange = { signUpPassword = it },
+                    onConfirmPasswordChange = { signUpConfirmPassword = it },
+                    onSignUp = {
+                        val result = runBlocking { authService.signUp(signUpEmail, signUpPassword, signUpConfirmPassword) }
+                        Toast.makeText(context, result.message, Toast.LENGTH_SHORT).show()
+                        if (!result.ok) {
+                            return@SignUpTab
                         }
 
-                        if (registerPassword.length < 6) {
-                            Toast.makeText(context, "Пароль должен содержать минимум 6 символов", Toast.LENGTH_SHORT).show()
-                            return@RegisterTab
-                        }
-
-                        val users = Store.getUsers()
-                        if (users.any { it.email == registerEmail }) {
-                            Toast.makeText(context, "Пользователь с таким email уже существует", Toast.LENGTH_SHORT).show()
-                            return@RegisterTab
-                        }
-
-                        val currentUser = Store.getCurrentUser()
-                        val hasVerifiedUsers = users.any { it.isVerified }
-
-                        val newUser = User(
-                            id = System.currentTimeMillis().toString(),
-                            email = registerEmail,
-                            password = registerPassword,
-                            isVerified = !hasVerifiedUsers || (currentUser?.isVerified ?: false),
-                            verifiedBy = currentUser?.id,
-                            createdAt = Date()
-                        )
-
-                        Store.saveUsers(users + newUser)
-
-                        if (!hasVerifiedUsers) {
-                            Toast.makeText(context, "Регистрация успешна! Вы первый пользователь и автоматически подтверждены.", Toast.LENGTH_SHORT).show()
-                            Store.setCurrentUser(newUser)
-                            onLoginSuccess(newUser)
-                        } else if (newUser.isVerified) {
-                            Toast.makeText(context, "Пользователь зарегистрирован и подтвержден!", Toast.LENGTH_SHORT).show()
-                            registerEmail = ""
-                            registerPassword = ""
-                            confirmPassword = ""
-                        } else {
-                            Toast.makeText(context, "Регистрация успешна! Ожидайте подтверждения от администратора.", Toast.LENGTH_SHORT).show()
-                            registerEmail = ""
-                            registerPassword = ""
-                            confirmPassword = ""
-                        }
+                        onLoginSuccess(result.obj!!)
                     }
                 )
             }
@@ -215,12 +187,12 @@ fun AuthScreen(
 }
 
 @Composable
-private fun LoginTab(
+private fun SignInTab(
     email: String,
     password: String,
     onEmailChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
-    onLogin: () -> Unit
+    onSignIn: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -265,7 +237,7 @@ private fun LoginTab(
             Spacer(modifier = Modifier.height(16.dp))
 
             Button(
-                onClick = onLogin,
+                onClick = onSignIn,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Войти")
@@ -275,14 +247,14 @@ private fun LoginTab(
 }
 
 @Composable
-private fun RegisterTab(
+private fun SignUpTab(
     email: String,
     password: String,
     confirmPassword: String,
     onEmailChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
     onConfirmPasswordChange: (String) -> Unit,
-    onRegister: () -> Unit
+    onSignUp: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -337,7 +309,7 @@ private fun RegisterTab(
             Spacer(modifier = Modifier.height(16.dp))
 
             Button(
-                onClick = onRegister,
+                onClick = onSignUp,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Зарегистрироваться")

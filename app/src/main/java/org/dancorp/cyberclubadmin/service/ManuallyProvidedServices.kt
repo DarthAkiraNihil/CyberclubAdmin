@@ -1,13 +1,11 @@
 package org.dancorp.cyberclubadmin.service
 
-import org.dancorp.cyberclubadmin.service.impl.UserService
-
 class ManuallyProvidedServices(
-    private val userService: UserService,
+    private val userService: AbstractUserService,
     private val authService: AbstractAuthService
 ): Services {
 
-    override val users: UserService
+    override val users: AbstractUserService
         get() = this.userService
 
     override val auth: AbstractAuthService

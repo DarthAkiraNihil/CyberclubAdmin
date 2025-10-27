@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.dancorp.cyberclubadmin.data.Store
 import org.dancorp.cyberclubadmin.model.User
+import org.dancorp.cyberclubadmin.service.Services
 import org.dancorp.cyberclubadmin.service.impl.DefaultServicesLoader
 import org.dancorp.cyberclubadmin.ui.screens.AuthScreen
 import org.dancorp.cyberclubadmin.ui.screens.GameTablesScreen
@@ -67,7 +68,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    App()
+                    App(services)
                 }
             }
         }
@@ -75,7 +76,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun App() {
+fun App(services: Services) {
     var currentUser by remember { mutableStateOf<User?>(null) }
     var currentScreen by remember { mutableStateOf<Screen>(Screen.SESSIONS) }
     var unreadCount by remember { mutableStateOf(0) }
@@ -111,7 +112,7 @@ fun App() {
     }
 
     if (currentUser == null) {
-        AuthScreen(onLoginSuccess = { handleLoginSuccess(it) })
+        AuthScreen(onLoginSuccess = { handleLoginSuccess(it) }, authService = services.auth, userService = services.users)
         return
     }
 

@@ -2,9 +2,9 @@ package org.dancorp.cyberclubadmin.service.impl
 
 import org.dancorp.cyberclubadmin.data.AbstractRepository
 import org.dancorp.cyberclubadmin.model.User
-import org.dancorp.cyberclubadmin.service.CrudService
+import org.dancorp.cyberclubadmin.service.AbstractUserService
 
-class UserService(private val repo: AbstractRepository<User>): CrudService<User> {
+class UserService(private val repo: AbstractRepository<User>): AbstractUserService {
 
     override suspend fun get(id: Int): User? {
         return this.repo.get(id)
@@ -26,8 +26,11 @@ class UserService(private val repo: AbstractRepository<User>): CrudService<User>
         this.repo.delete(id)
     }
 
-    suspend fun findByEmail(email: String): User? {
+    override suspend fun findByEmail(email: String): User? {
         return this.list().find { u: User -> u.email == email }
     }
 
+    override suspend fun hasVerifiedUsers(): Boolean {
+        return this.list().any { u: User -> u.isVerified }
+    }
 }
