@@ -1,5 +1,7 @@
 package org.dancorp.cyberclubadmin.ui.screens
 
+import android.app.Activity
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -46,7 +48,6 @@ import org.dancorp.cyberclubadmin.ui.theme.body2
 import org.dancorp.cyberclubadmin.ui.theme.h4
 import org.dancorp.cyberclubadmin.ui.theme.h6
 import org.dancorp.cyberclubadmin.ui.widgets.TabButton
-import java.util.Date
 
 private enum class AuthTab {
     SIGN_IN,
@@ -54,6 +55,7 @@ private enum class AuthTab {
 }
 @Composable
 fun AuthScreen(
+    parentActivity: Activity,
     authService: AbstractAuthService,
     userService: AbstractUserService,
     onLoginSuccess: (User) -> Unit
@@ -140,6 +142,42 @@ fun AuthScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            val onSucc = {
+                Log.v("app", "Signing in")
+                authService.signIn(signInEmail, signInPassword) { user ->
+                    {
+                        Log.v("app", "On success execution launched")
+                        if (user == null) {
+                            Toast.makeText(
+                                context,
+                                "Неверный email или пароль",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            return@signIn
+                        }
+
+                        if (!user.verified) {
+                            Toast.makeText(
+                                context,
+                                "Ваш аккаунт не подтвержден. Обратитесь к администратору.",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            return@signIn
+                        }
+
+                        Store.setCurrentUser(user)
+                        Toast.makeText(
+                            context,
+                            "Вход выполнен успешно!",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        Log.i("app", "ACCESS GRANTED")
+                        onLoginSuccess(user)
+                    }
+                }
+
+            }
+
             when (selectedTab) {
                 AuthTab.SIGN_IN -> SignInTab(
                     email = signInEmail,
@@ -147,21 +185,47 @@ fun AuthScreen(
                     onEmailChange = { signInEmail = it },
                     onPasswordChange = { signInPassword = it },
                     onSignIn = {
-                        val user = runBlocking { authService.signIn(signInEmail, signInPassword) }
+                        Log.v("app", "Signing in")
+                        authService.signIn(signInEmail, signInPassword) { user ->
 
-                        if (user == null) {
-                            Toast.makeText(context, "Неверный email или пароль", Toast.LENGTH_SHORT).show()
-                            return@SignInTab
-                        }
+                                Log.v("app", "On success execution launched")
+                                if (user == null) {
+                                    Toast.makeText(
+                                        context,
+                                        "Неверный email или пароль",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    Log.w("app", "Incorrect credentials")
+                                    return@signIn
+                                }
 
-                        if (!user.isVerified) {
-                            Toast.makeText(context, "Ваш аккаунт не подтвержден. Обратитесь к администратору.", Toast.LENGTH_SHORT).show()
-                            return@SignInTab
-                        }
+                                if (!user.verified) {
+                                    Log.w("app", "Account is not verified")
+                                    Toast.makeText(
+                                        context,
+                                        "Ваш аккаунт не подтвержден. Обратитесь к администратору.",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    return@signIn
+                                }
+                            Log.i("app", "ACCESS GRANTED 2")
+                                // Store.setCurrentUser(user)
+                            try {
+                                parentActivity.runOnUiThread {
+                                    Toast.makeText(
+                                        context,
+                                        "Вход выполнен успешно!",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            } catch (e: Throwable) {
+                                Log.e("app", "EGGOG: $e")
+                            }
+                                Log.i("app", "ACCESS GRANTED")
+                                onLoginSuccess(user)
+                            }
 
-                        Store.setCurrentUser(user)
-                        Toast.makeText(context, "Вход выполнен успешно!", Toast.LENGTH_SHORT).show()
-                        onLoginSuccess(user)
+
                     }
                 )
                 AuthTab.SIGN_UP -> SignUpTab(

@@ -68,8 +68,7 @@ object Store {
                 User(
                     id = "1",
                     email = "admin@club.ru",
-                    password = "admin123",
-                    isVerified = true,
+                    verified = true,
                     verifiedBy = null,
                     createdAt = Date()
                 )

@@ -11,7 +11,7 @@ class UserService(private val repo: AbstractRepository<User>): AbstractUserServi
     }
 
     override suspend fun list(): List<User> {
-        return this.repo.list();
+        return this.repo.list()
     }
 
     override suspend fun create(obj: User) {
@@ -31,6 +31,6 @@ class UserService(private val repo: AbstractRepository<User>): AbstractUserServi
     }
 
     override suspend fun hasVerifiedUsers(): Boolean {
-        return this.list().any { u: User -> u.isVerified }
+        return this.list().any { u: User -> u.verified }
     }
 }

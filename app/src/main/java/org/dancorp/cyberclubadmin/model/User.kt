@@ -7,11 +7,12 @@ import java.util.Date
 data class User(
     val id: String,
     val email: String,
-    val password: String,
-    val isVerified: Boolean,
+    val verified: Boolean,
     val verifiedBy: String?,
     val createdAt: Date
 ): Mappable, WithId {
+
+    constructor(): this("", "", false, null, Date())
 
     override fun id(): String {
         return this.id
@@ -21,8 +22,7 @@ data class User(
         return hashMapOf(
             "id" to this.id,
             "email" to this.email,
-            "password" to this.password,
-            "isVerified" to this.isVerified,
+            "isVerified" to this.verified,
             "verifiedBy" to this.verifiedBy,
             "createdAt" to this.createdAt,
         )

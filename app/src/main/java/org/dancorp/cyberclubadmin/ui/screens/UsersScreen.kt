@@ -69,7 +69,7 @@ fun UsersScreen() {
 
         if (index != -1 && currentUser != null) {
             allUsers[index] = allUsers[index].copy(
-                isVerified = true,
+                verified = true,
                 verifiedBy = currentUser!!.id
             )
             Store.saveUsers(allUsers)
@@ -78,8 +78,8 @@ fun UsersScreen() {
         }
     }
 
-    val pendingUsers = users.filter { !it.isVerified }
-    val verifiedUsers = users.filter { it.isVerified }
+    val pendingUsers = users.filter { !it.verified }
+    val verifiedUsers = users.filter { it.verified }
 
     Column(
         modifier = Modifier
@@ -187,7 +187,7 @@ private fun PendingUserCard(
                 )
             }
 
-            if (currentUser?.isVerified == true) {
+            if (currentUser?.verified == true) {
                 Button(
                     onClick = onVerify,
                     modifier = Modifier.height(36.dp)

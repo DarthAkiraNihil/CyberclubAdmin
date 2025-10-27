@@ -1,20 +1,20 @@
 package org.dancorp.cyberclubadmin.service.impl
 
 import android.util.Log
-import android.widget.Toast
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
-import com.google.firebase.firestore.firestore
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import org.dancorp.cyberclubadmin.data.Store
 import org.dancorp.cyberclubadmin.model.User
 import org.dancorp.cyberclubadmin.service.AbstractAuthService
-import org.dancorp.cyberclubadmin.shared.ResultState
+import org.dancorp.cyberclubadmin.service.AbstractUserService
 import org.dancorp.cyberclubadmin.shared.ResultStateWithObject
 import java.util.Date
 
-class FirebaseAuthService(firebase: Firebase, private val userService: UserService): AbstractAuthService {
+class FirebaseAuthService(firebase: Firebase, private val userService: AbstractUserService): AbstractAuthService {
 
     companion object {
         const val PASSWORDS_DO_NOT_MATCH = "Пароли не совпадают"
@@ -22,20 +22,24 @@ class FirebaseAuthService(firebase: Firebase, private val userService: UserServi
 
     private val auth = firebase.auth
 
-    override suspend fun signIn(
+    override fun signIn(
         email: String,
-        password: String
-    ): User? {
-        val result = this
-            .auth
-            .signInWithEmailAndPassword(email, password)
-            .await()
-        if (result.user != null) {
-            return this.userService.findByEmail(email)
-        }
+        password: String,
+        onSuccess: (User?) -> Unit
+    ) {
 
-        return null
+        CoroutineScope(Dispatchers.IO).async {
+            Log.i("app", "Signing in with email=$email")
+            val result = auth.signInWithEmailAndPassword(email, password).await()
+            Log.i("app", "Retrieved firebase account data for $email")
+            val user = userService.findByEmail(result.user!!.email!!)
+            Log.v("app", "Got user: $user")
+            onSuccess(user)
+            Log.v("app", "onSuccess has been called")
+        }
     }
+
+
 
     override suspend fun signUp(
         email: String,
@@ -69,8 +73,7 @@ class FirebaseAuthService(firebase: Firebase, private val userService: UserServi
         val newUser = User(
             id = System.currentTimeMillis().toString(),
             email = email,
-            password = password,
-            isVerified = hasVerifiedUsers,
+            verified = hasVerifiedUsers,
             verifiedBy = null,
             createdAt = Date()
         )

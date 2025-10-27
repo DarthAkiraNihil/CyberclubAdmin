@@ -1,5 +1,6 @@
 package org.dancorp.cyberclubadmin
 
+import android.app.Activity
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -68,7 +69,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    App(services)
+                    App(this, services)
                 }
             }
         }
@@ -76,7 +77,10 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun App(services: Services) {
+fun App(
+    parentActivity: Activity,
+    services: Services
+) {
     var currentUser by remember { mutableStateOf<User?>(null) }
     var currentScreen by remember { mutableStateOf<Screen>(Screen.SESSIONS) }
     var unreadCount by remember { mutableStateOf(0) }
@@ -112,7 +116,7 @@ fun App(services: Services) {
     }
 
     if (currentUser == null) {
-        AuthScreen(onLoginSuccess = { handleLoginSuccess(it) }, authService = services.auth, userService = services.users)
+        AuthScreen(parentActivity = parentActivity, onLoginSuccess = { handleLoginSuccess(it) }, authService = services.auth, userService = services.users)
         return
     }
 
