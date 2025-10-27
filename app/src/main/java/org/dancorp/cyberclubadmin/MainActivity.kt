@@ -65,7 +65,7 @@ class MainActivity : ComponentActivity() {
         val db = Firebase
         val repositories: Repositories = FirebaseRepositories(db)
         runBlocking {
-            repositories.sessions().create(Session(
+            repositories.sessions.create(Session(
             "1",
             1,
             "1",

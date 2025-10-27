@@ -20,6 +20,10 @@ data class Session(
 
 ): Mappable, WithId {
 
+    override fun id(): String {
+        return this.id
+    }
+
     override fun toMap(): Map<String, Any?> {
         return hashMapOf(
             "id" to this.id,
@@ -34,9 +38,5 @@ data class Session(
             "isPaidForDebt" to this.isPaidForDebt,
             "createdAt" to this.createdAt,
         )
-    }
-
-    override fun id(): String {
-        return this.id;
     }
 }

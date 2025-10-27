@@ -1,5 +1,9 @@
 package org.dancorp.cyberclubadmin.model
 
+import org.dancorp.cyberclubadmin.util.Mappable
+import org.dancorp.cyberclubadmin.util.WithId
+import kotlin.collections.hashMapOf
+
 data class GameTable(
     val id: String,
     val number: Int,
@@ -10,4 +14,23 @@ data class GameTable(
     val gpu: String,
     val hourlyRate: Int,
     val installedGames: List<String>
-)
+): Mappable, WithId {
+
+    override fun id(): String {
+        return this.id
+    }
+
+    override fun toMap(): Map<String, Any?> {
+        return hashMapOf(
+            "id" to this.id,
+            "number" to this.number,
+            "cpu" to this.cpu,
+            "ram" to this.ram,
+            "diskTotal" to this.diskTotal,
+            "diskUsed" to this.diskUsed,
+            "gpu" to this.gpu,
+            "hourlyRate" to this.hourlyRate,
+            "installedGames" to this.installedGames,
+        )
+    }
+}
