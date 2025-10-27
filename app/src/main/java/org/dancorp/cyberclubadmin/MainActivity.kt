@@ -1,6 +1,7 @@
 package org.dancorp.cyberclubadmin
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
@@ -39,14 +40,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.google.firebase.Firebase
-import kotlinx.coroutines.*
-import com.google.firebase.firestore.firestore
-import org.dancorp.cyberclubadmin.data.Repositories
 import org.dancorp.cyberclubadmin.data.Store
-import org.dancorp.cyberclubadmin.data.firebase.FirebaseRepositories
-import org.dancorp.cyberclubadmin.model.Session
 import org.dancorp.cyberclubadmin.model.User
+import org.dancorp.cyberclubadmin.service.impl.DefaultServicesLoader
 import org.dancorp.cyberclubadmin.ui.screens.AuthScreen
 import org.dancorp.cyberclubadmin.ui.screens.GameTablesScreen
 import org.dancorp.cyberclubadmin.ui.screens.GamesScreen
@@ -57,28 +53,14 @@ import org.dancorp.cyberclubadmin.ui.screens.UsersScreen
 import org.dancorp.cyberclubadmin.ui.theme.CyberclubAdminTheme
 import org.dancorp.cyberclubadmin.ui.theme.h6
 import org.dancorp.cyberclubadmin.ui.theme.subtitle2
-import java.util.Date
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val db = Firebase
-        val repositories: Repositories = FirebaseRepositories(db)
-        runBlocking {
-            repositories.sessions.create(Session(
-            "1",
-            1,
-            "1",
-            Date(),
-            1,
-            1,
-            10.0,
-            10.0,
-            true,
-            true,
-            Date()
-        ))
-            }
+
+        val services = DefaultServicesLoader().load()
+        Log.i("app", "Loaded services: $services")
+
         setContent {
             CyberclubAdminTheme {
                 Surface(
