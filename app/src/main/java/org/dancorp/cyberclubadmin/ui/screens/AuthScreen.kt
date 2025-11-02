@@ -57,7 +57,6 @@ private enum class AuthTab {
 fun AuthScreen(
     parentActivity: Activity,
     authService: AbstractAuthService,
-    userService: AbstractUserService,
     onLoginSuccess: (User) -> Unit
 ) {
     var signInEmail by remember { mutableStateOf("") }

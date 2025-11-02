@@ -21,11 +21,11 @@ abstract class AbstractFirebaseRepository<T>: AbstractRepository<T> where T: Map
     }
 
     override suspend fun get(
-        id: Int,
+        id: String,
     ): T? {
         val snapshot = this
             .collection
-            .document(id.toString())
+            .document(id)
             .get()
             .await()
 
@@ -51,18 +51,18 @@ abstract class AbstractFirebaseRepository<T>: AbstractRepository<T> where T: Map
             .await()
     }
 
-    override suspend fun update(id: Int, updated: T) {
+    override suspend fun update(id: String, updated: T) {
         this
             .collection
-            .document(id.toString())
+            .document(id)
             .update(updated.toMap())
             .await()
     }
 
-    override suspend fun delete(id: Int) {
+    override suspend fun delete(id: String) {
         this
             .collection
-            .document(id.toString())
+            .document(id)
             .delete()
             .await()
     }

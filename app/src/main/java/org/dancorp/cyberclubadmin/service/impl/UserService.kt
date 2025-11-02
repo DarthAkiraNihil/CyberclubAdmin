@@ -6,7 +6,7 @@ import org.dancorp.cyberclubadmin.service.AbstractUserService
 
 class UserService(private val repo: AbstractRepository<User>): AbstractUserService {
 
-    override suspend fun get(id: Int): User? {
+    override suspend fun get(id: String): User? {
         return this.repo.get(id)
     }
 
@@ -18,11 +18,11 @@ class UserService(private val repo: AbstractRepository<User>): AbstractUserServi
         this.repo.create(obj)
     }
 
-    override suspend fun update(id: Int, updated: User) {
+    override suspend fun update(id: String, updated: User) {
         this.repo.update(id, updated)
     }
 
-    override suspend fun delete(id: Int) {
+    override suspend fun delete(id: String) {
         this.repo.delete(id)
     }
 

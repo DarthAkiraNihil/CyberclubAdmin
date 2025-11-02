@@ -10,6 +10,8 @@ data class SubscriptionType(
     val tariffCoefficient: Double
 ): Mappable, WithId {
 
+    constructor(): this("", "", 0.0, 0.0)
+
     override fun id(): String {
         return this.id
     }

@@ -93,7 +93,7 @@ fun SubscriptionsScreen() {
     }
 
     fun handleCreateSubscription() {
-        if (subFormData.email.isBlank() || subFormData.typeId.isBlank()) {
+        if (subFormData.email.isBlank()) {
             Toast.makeText(context, "Заполните все поля", Toast.LENGTH_SHORT).show()
             return
         }
@@ -124,7 +124,7 @@ fun SubscriptionsScreen() {
             id = System.currentTimeMillis().toString(),
             subscriptionNumber = "SUB-${System.currentTimeMillis().toString().takeLast(6)}",
             email = subFormData.email,
-            typeId = subFormData.typeId,
+            type = SubscriptionType(),
             purchaseDate = purchaseDate,
             expiryDate = expiryDate,
             debt = 0.0,
@@ -284,7 +284,7 @@ private fun SubscriptionTypeCard(
     type: SubscriptionType,
     subscriptions: List<Subscription>
 ) {
-    val activeCount = subscriptions.count { it.typeId == type.id && it.isActive }
+    val activeCount = 0 // subscriptions.count { it.type == type.id && it.isActive }
     val discount = ((1 - type.tariffCoefficient) * 100).roundToInt()
 
     Card(
@@ -338,7 +338,7 @@ private fun SubscriptionTypeCard(
 
 data class SubscriptionFormData(
     val email: String = "",
-    val typeId: String = ""
+    val typeId: SubscriptionType = SubscriptionType()
 )
 
 data class SubscriptionTypeFormData(

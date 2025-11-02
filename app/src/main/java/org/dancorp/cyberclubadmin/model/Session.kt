@@ -7,7 +7,7 @@ import kotlin.Int
 
 data class Session(
     val id: String,
-    val tableNumber: Int,
+    val tableId: String,
     val subscriptionId: String,
     val startTime: Date,
     val bookedMinutes: Int,
@@ -27,7 +27,7 @@ data class Session(
     override fun toMap(): Map<String, Any?> {
         return hashMapOf(
             "id" to this.id,
-            "tableNumber" to this.tableNumber,
+            "tableId" to this.tableId,
             "subscriptionId" to this.subscriptionId,
             "startTime" to this.startTime,
             "bookedMinutes" to this.bookedMinutes,

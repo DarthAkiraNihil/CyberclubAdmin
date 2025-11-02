@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.ExitToApp
@@ -32,6 +33,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -82,8 +84,8 @@ fun App(
     services: Services
 ) {
     var currentUser by remember { mutableStateOf<User?>(null) }
-    var currentScreen by remember { mutableStateOf<Screen>(Screen.SESSIONS) }
-    var unreadCount by remember { mutableStateOf(0) }
+    var currentScreen by remember { mutableStateOf(Screen.SESSIONS) }
+    var unreadCount by remember { mutableIntStateOf(0) }
 
     val context = LocalContext.current
 
@@ -116,7 +118,7 @@ fun App(
     }
 
     if (currentUser == null) {
-        AuthScreen(parentActivity = parentActivity, onLoginSuccess = { handleLoginSuccess(it) }, authService = services.auth, userService = services.users)
+        AuthScreen(parentActivity = parentActivity, onLoginSuccess = { handleLoginSuccess(it) }, authService = services.auth)
         return
     }
 
@@ -138,7 +140,7 @@ fun App(
                 },
                 actions = {
                     IconButton(onClick = { handleLogout() }) {
-                        Icon(Icons.Default.ExitToApp, contentDescription = "Logout")
+                        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Logout")
                     }
                 },
                 // colors = TopAppBarColors(containerColor = Color.White),
@@ -165,7 +167,7 @@ fun App(
                 .padding(paddingValues)
         ) {
             when (currentScreen) {
-                Screen.SESSIONS -> SessionsScreen()
+                Screen.SESSIONS -> SessionsScreen(parentActivity, services.sessions, services.gameTables, services.subscriptions, services.notifications)
                 Screen.TABLES -> GameTablesScreen()
                 Screen.GAMES -> GamesScreen()
                 Screen.SUBSCRIPTIONS -> SubscriptionsScreen()

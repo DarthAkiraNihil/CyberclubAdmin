@@ -1,5 +1,6 @@
 package org.dancorp.cyberclubadmin.ui.screens
 
+import android.app.Activity
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
@@ -40,6 +41,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -52,11 +54,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import org.dancorp.cyberclubadmin.data.Store
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.runBlocking
 import org.dancorp.cyberclubadmin.model.GameTable
 import org.dancorp.cyberclubadmin.model.Notification
 import org.dancorp.cyberclubadmin.model.Session
 import org.dancorp.cyberclubadmin.model.Subscription
+import org.dancorp.cyberclubadmin.service.AbstractGameTableService
+import org.dancorp.cyberclubadmin.service.AbstractNotificationService
+import org.dancorp.cyberclubadmin.service.AbstractSessionService
+import org.dancorp.cyberclubadmin.service.AbstractSubscriptionService
+import org.dancorp.cyberclubadmin.shared.ResultState
 import org.dancorp.cyberclubadmin.ui.theme.body1
 import org.dancorp.cyberclubadmin.ui.theme.body2
 import org.dancorp.cyberclubadmin.ui.theme.h5
@@ -69,67 +79,75 @@ import kotlin.math.max
 import kotlin.math.min
 
 @Composable
-fun SessionsScreen() {
+fun SessionsScreen(
+    parentActivity: Activity,
+    sessionService: AbstractSessionService,
+    gameTableService: AbstractGameTableService,
+    subscriptionService: AbstractSubscriptionService,
+    notificationService: AbstractNotificationService
+) {
     var sessions by remember { mutableStateOf(emptyList<Session>()) }
     var subscriptions by remember { mutableStateOf(emptyList<Subscription>()) }
     var tables by remember { mutableStateOf(emptyList<GameTable>()) }
     var isCreateOpen by remember { mutableStateOf(false) }
     var selectedTable by remember { mutableStateOf("") }
     var selectedSubscription by remember { mutableStateOf("") }
-    var bookedHours by remember { mutableStateOf(1) }
+    var bookedHours by remember { mutableIntStateOf(1) }
     var payAsDebt by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
 
     fun loadData() {
-        sessions = Store.getSessions()
-        subscriptions = Store.getSubscriptions().filter { it.isActive }
-        tables = Store.getTables()
+        CoroutineScope(Dispatchers.IO).async {
+            sessions = sessionService.list()
+            subscriptions = subscriptionService.listActive()
+            tables = gameTableService.list()
+        }
     }
 
     LaunchedEffect(Unit) {
         loadData()
     }
 
-    fun updateSessions() {
-        val allSessions = Store.getSessions()
-        val updatedSessions = allSessions.map { session ->
+    suspend fun updateSessions() {
+        val activeSessions = sessionService.list()
+        val updatedSessions = activeSessions.map { session ->
+
             if (session.isActive) {
-                val elapsed = (System.currentTimeMillis() - session.startTime.time) / 60000
-                val remaining = session.bookedMinutes - elapsed.toInt()
-
-                if (remaining <= 0 && session.isActive) {
-                    Store.addNotification(
-                        Notification(
-                            id = System.currentTimeMillis().toString(),
-                            type = "session_expired",
-                            message = "Время сессии на столе ${session.tableNumber} истекло!",
-                            timestamp = Date(),
-                            isRead = false,
-                            relatedId = session.id
-                        )
-                    )
-                    Toast.makeText(context, "Время сессии на столе ${session.tableNumber} истекло!", Toast.LENGTH_SHORT).show()
-                }
-
-                session.copy(remainingMinutes = max(0, remaining))
-            } else {
                 session
+                return
             }
+
+            val elapsed = (System.currentTimeMillis() - session.startTime.time) / 60000
+            val remaining = session.bookedMinutes - elapsed.toInt()
+
+            if (remaining <= 0) {
+
+                notificationService.create(
+                    Notification(
+                        id = System.currentTimeMillis().toString(),
+                        type = "session_expired",
+                        message = "Время сессии на столе ${session.tableId} истекло!",
+                        timestamp = Date(),
+                        isRead = false,
+                        relatedId = session.id
+                    )
+                )
+                parentActivity.runOnUiThread {
+                    Toast.makeText(context, "Время сессии на столе ${session.tableId} истекло!", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            session.copy(remainingMinutes = max(0, remaining))
+
         }
 
-        Store.saveSessions(updatedSessions)
+        updatedSessions.forEach { s -> {
+            CoroutineScope(Dispatchers.IO).async {
+                sessionService.update(s.id, s)
+            }
+        } }
         sessions = updatedSessions
-    }
-
-    fun canCreateSession(subscription: Subscription): Pair<Boolean, String?> {
-        if (subscription.unpaidSessions >= 3) {
-            return Pair(false, "Превышен лимит неоплаченных сессий (3)")
-        }
-        if (subscription.debt > 20000) {
-            return Pair(false, "Сумма долга превышает 20 000 ₽")
-        }
-        return Pair(true, null)
     }
 
     fun handleCreateSession() {
@@ -141,129 +159,55 @@ fun SessionsScreen() {
         val subscription = subscriptions.find { it.id == selectedSubscription }
         val table = tables.find { it.id == selectedTable }
 
-        if (subscription == null || table == null) return
+        CoroutineScope(Dispatchers.IO).async {
+            val result = sessionService.create(
+                subscription,
+                table,
+                bookedHours,
+                payAsDebt,
+            )
 
-        val (allowed, reason) = canCreateSession(subscription)
-        if (!allowed) {
-            Toast.makeText(context, reason, Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        val existingSession = sessions.find {
-            it.tableNumber == table.number && it.isActive
-        }
-        if (existingSession != null) {
-            Toast.makeText(context, "Этот стол уже занят", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        val subscriptionType = Store.getSubscriptionTypes().find {
-            it.id == subscription.typeId
-        }
-        if (subscriptionType == null) return
-
-        val bookedMinutes = bookedHours * 60
-        val basePrice = table.hourlyRate * bookedHours
-        val finalPrice = basePrice * subscriptionType.tariffCoefficient
-
-        val newSession = Session(
-            id = System.currentTimeMillis().toString(),
-            tableNumber = table.number,
-            subscriptionId = subscription.id,
-            startTime = Date(),
-            bookedMinutes = bookedMinutes,
-            remainingMinutes = bookedMinutes,
-            basePrice = basePrice.toDouble(),
-            finalPrice = finalPrice,
-            isActive = true,
-            isPaidForDebt = payAsDebt,
-            createdAt = Date()
-        )
-
-        val allSessions = Store.getSessions() + newSession
-        Store.saveSessions(allSessions)
-
-        if (payAsDebt) {
-            val allSubscriptions = Store.getSubscriptions().toMutableList()
-            val subIndex = allSubscriptions.indexOfFirst { it.id == subscription.id }
-            if (subIndex != -1) {
-                allSubscriptions[subIndex] = allSubscriptions[subIndex].copy(
-                    debt = allSubscriptions[subIndex].debt + finalPrice,
-                    unpaidSessions = allSubscriptions[subIndex].unpaidSessions + 1
-                )
-                Store.saveSubscriptions(allSubscriptions)
+            parentActivity.runOnUiThread {
+                Toast.makeText(context, result.message, Toast.LENGTH_SHORT).show()
             }
-        }
 
-        Toast.makeText(context, "Сессия создана на столе ${table.number}", Toast.LENGTH_SHORT).show()
-        isCreateOpen = false
-        selectedTable = ""
-        selectedSubscription = ""
-        bookedHours = 1
-        payAsDebt = false
-        loadData()
+            isCreateOpen = false
+            selectedTable = ""
+            selectedSubscription = ""
+            bookedHours = 1
+            payAsDebt = false
+            loadData()
+        }
     }
 
     fun handleExtendSession(sessionId: String) {
-        val allSessions = Store.getSessions().toMutableList()
-        val sessionIndex = allSessions.indexOfFirst { it.id == sessionId }
-        if (sessionIndex == -1) return
-
-        val session = allSessions[sessionIndex]
-        val table = tables.find { it.number == session.tableNumber }
-        val subscription = Store.getSubscriptions().find { it.id == session.subscriptionId }
-        val subscriptionType = Store.getSubscriptionTypes().find { it.id == subscription?.typeId }
-
-        if (table == null || subscription == null || subscriptionType == null) return
-
-        val additionalMinutes = 60
-        val additionalCost = (table.hourlyRate * 1) * subscriptionType.tariffCoefficient
-
-        allSessions[sessionIndex] = session.copy(
-            bookedMinutes = session.bookedMinutes + additionalMinutes,
-            remainingMinutes = session.remainingMinutes + additionalMinutes,
-            finalPrice = session.finalPrice + additionalCost
-        )
-
-        Store.saveSessions(allSessions)
-        Toast.makeText(context, "Сессия продлена на 1 час", Toast.LENGTH_SHORT).show()
-        loadData()
+        CoroutineScope(Dispatchers.IO).async {
+            sessionService.extend(sessionId)
+            parentActivity.runOnUiThread {
+                Toast.makeText(
+                    context,
+                    "Сессия была продлена на 1 час",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+            loadData()
+        }
     }
 
     fun handleEndSession(sessionId: String) {
-        val allSessions = Store.getSessions().toMutableList()
-        val sessionIndex = allSessions.indexOfFirst { it.id == sessionId }
-        if (sessionIndex == -1) return
-
-        val session = allSessions[sessionIndex]
-        val elapsed = (System.currentTimeMillis() - session.startTime.time) / 60000
-        val actualMinutes = min(elapsed.toInt(), session.bookedMinutes)
-
-        val table = tables.find { it.number == session.tableNumber }
-        val subscription = Store.getSubscriptions().find { it.id == session.subscriptionId }
-        val subscriptionType = Store.getSubscriptionTypes().find { it.id == subscription?.typeId }
-
-        if (table == null || subscriptionType == null) return
-
-        val actualPrice = (table.hourlyRate * (actualMinutes / 60.0)) * subscriptionType.tariffCoefficient
-
-        allSessions[sessionIndex] = session.copy(
-            isActive = false,
-            finalPrice = actualPrice,
-            remainingMinutes = 0
-        )
-
-        Store.saveSessions(allSessions)
-        Toast.makeText(context, "Сессия завершена. К оплате: ${String.format("%.2f", actualPrice)} ₽", Toast.LENGTH_SHORT).show()
-        loadData()
+        CoroutineScope(Dispatchers.IO).async {
+            val actualPrice = sessionService.end(sessionId)
+            parentActivity.runOnUiThread {
+                Toast
+                    .makeText(context, "Сессия завершена. К оплате: ${String.format("%.2f", actualPrice)} ₽", Toast.LENGTH_SHORT)
+                    .show()
+            }
+            loadData()
+        }
     }
 
     val activeSessions = sessions.filter { it.isActive }
     val completedSessions = sessions.filter { !it.isActive }.take(5)
-
-    fun getAvailableTables() = tables.filter { table ->
-        !activeSessions.any { session -> session.tableNumber == table.number }
-    }
 
     Column(
         modifier = Modifier
@@ -308,7 +252,7 @@ fun SessionsScreen() {
         // Active Sessions
         LazyColumn {
             items(activeSessions) { session ->
-                val table = tables.find { it.number == session.tableNumber }
+                val table = runBlocking { gameTableService.get(session.tableId)!! }
                 val subscription = subscriptions.find { it.id == session.subscriptionId }
                 val isExpired = session.remainingMinutes <= 0
 
@@ -346,7 +290,7 @@ fun SessionsScreen() {
     // Create Session Dialog
     if (isCreateOpen) {
         CreateSessionDialog(
-            availableTables = getAvailableTables(),
+            availableTables = runBlocking { gameTableService.listAvailableTables() },
             subscriptions = subscriptions,
             selectedTable = selectedTable,
             selectedSubscription = selectedSubscription,
@@ -358,7 +302,7 @@ fun SessionsScreen() {
             onPayAsDebtChange = { payAsDebt = it },
             onDismiss = { isCreateOpen = false },
             onSubmit = { handleCreateSession() },
-            canCreateSession = ::canCreateSession
+            canCreateSession = Subscription::canCreateSession
         )
     }
 }
@@ -386,7 +330,7 @@ private fun SessionCard(
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "Стол ${session.tableNumber}",
+                            text = "Стол ${session.tableId}",
                             style = MaterialTheme.typography.h6,
                             fontWeight = FontWeight.Bold
                         )
@@ -472,7 +416,7 @@ private fun CompletedSessionCard(session: Session) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text(text = "Стол ${session.tableNumber}")
+                Text(text = "Стол ${session.tableId}")
                 Text(
                     text = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(session.startTime),
                     style = MaterialTheme.typography.body2,
@@ -537,7 +481,7 @@ private fun CreateSessionDialog(
     onPayAsDebtChange: (Boolean) -> Unit,
     onDismiss: () -> Unit,
     onSubmit: () -> Unit,
-    canCreateSession: (Subscription) -> Pair<Boolean, String?>
+    canCreateSession: (Subscription) -> ResultState
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
