@@ -1,5 +1,6 @@
 package org.dancorp.cyberclubadmin.ui.screens
 
+import android.app.Activity
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -46,15 +47,24 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import org.dancorp.cyberclubadmin.data.Store
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.runBlocking
 import org.dancorp.cyberclubadmin.model.Game
+import org.dancorp.cyberclubadmin.service.AbstractGameService
+import org.dancorp.cyberclubadmin.service.AbstractGameTableService
 import org.dancorp.cyberclubadmin.ui.theme.body2
 import org.dancorp.cyberclubadmin.ui.theme.h5
 import org.dancorp.cyberclubadmin.ui.theme.h6
 import org.dancorp.cyberclubadmin.ui.widgets.AlertCard
 
 @Composable
-fun GamesScreen() {
+fun GamesScreen(
+    parentActivity: Activity,
+    gameService: AbstractGameService,
+    gameTableService: AbstractGameTableService
+) {
     var games by remember { mutableStateOf(emptyList<Game>()) }
     var isDialogOpen by remember { mutableStateOf(false) }
     var formData by remember {
@@ -62,7 +72,9 @@ fun GamesScreen() {
     }
 
     fun loadData() {
-        games = Store.getGames()
+        CoroutineScope(Dispatchers.IO).async {
+            games = gameService.list()
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -121,20 +133,30 @@ fun GamesScreen() {
                     GameCard(
                         game = game,
                         onDelete = {
-                            val tables = Store.getTables()
-                            val isUsed = tables.any { table -> table.installedGames.contains(game.id) }
+                            CoroutineScope(Dispatchers.IO).async {
+                                val isUsed = gameTableService.anyHasGameInstalled(game)
 
-                            if (isUsed) {
-                                Toast.makeText(context, "Нельзя удалить игру, установленную на столах", Toast.LENGTH_SHORT).show()
-                                return@GameCard
+                                if (isUsed) {
+                                    parentActivity.runOnUiThread {
+                                        Toast.makeText(
+                                            context,
+                                            "Нельзя удалить игру, установленную на столах",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                    return@async
+                                }
+
+                                // Show confirmation dialog
+                                gameService.delete(game.id)
+                                parentActivity.runOnUiThread {
+                                    Toast.makeText(context, "Игра удалена", Toast.LENGTH_SHORT)
+                                        .show()
+                                }
+                                loadData()
                             }
-
-                            // Show confirmation dialog
-                            val allGames = Store.getGames().filter { it.id != game.id }
-                            Store.saveGames(allGames)
-                            Toast.makeText(context, "Игра удалена", Toast.LENGTH_SHORT).show()
-                            loadData()
-                        }
+                        },
+                        gameTableService = gameTableService
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                 }
@@ -164,13 +186,15 @@ fun GamesScreen() {
                     diskSpace = formData.diskSpace
                 )
 
-                val allGames = Store.getGames() + newGame
-                Store.saveGames(allGames)
-
-                Toast.makeText(context, "Игра добавлена", Toast.LENGTH_SHORT).show()
-                isDialogOpen = false
-                resetForm()
-                loadData()
+                CoroutineScope(Dispatchers.IO).async {
+                    gameService.create(newGame)
+                    parentActivity.runOnUiThread {
+                        Toast.makeText(context, "Игра добавлена", Toast.LENGTH_SHORT).show()
+                    }
+                    isDialogOpen = false
+                    resetForm()
+                    loadData()
+                }
             }
         )
     }
@@ -179,9 +203,10 @@ fun GamesScreen() {
 @Composable
 private fun GameCard(
     game: Game,
+    gameTableService: AbstractGameTableService,
     onDelete: () -> Unit
 ) {
-    val tables = Store.getTables()
+    val tables = runBlocking { gameTableService.list() }
     val installedCount = tables.count { it.installedGames.contains(game.id) }
 
     Card(

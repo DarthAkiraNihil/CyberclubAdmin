@@ -2,6 +2,8 @@ package org.dancorp.cyberclubadmin.service.impl
 
 import kotlinx.coroutines.runBlocking
 import org.dancorp.cyberclubadmin.data.AbstractRepository
+import org.dancorp.cyberclubadmin.data.Store
+import org.dancorp.cyberclubadmin.model.Game
 import org.dancorp.cyberclubadmin.model.GameTable
 import org.dancorp.cyberclubadmin.model.Session
 import org.dancorp.cyberclubadmin.service.AbstractGameTableService
@@ -44,5 +46,9 @@ class GameTableService(
 
     override suspend fun listAvailableTables(): List<GameTable> {
         return this.list().filter { this.isTableAvailable(it.id) }
+    }
+
+    override suspend fun anyHasGameInstalled(game: Game): Boolean {
+        return this.list().any { table -> table.installedGames.contains(game.id) }
     }
 }
