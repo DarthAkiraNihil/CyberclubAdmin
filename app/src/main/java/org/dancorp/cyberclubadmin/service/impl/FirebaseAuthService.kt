@@ -1,12 +1,10 @@
 package org.dancorp.cyberclubadmin.service.impl
 
-import android.util.Log
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import org.dancorp.cyberclubadmin.model.User
 import org.dancorp.cyberclubadmin.service.AbstractAuthService
@@ -17,7 +15,15 @@ import java.util.Date
 class FirebaseAuthService(firebase: Firebase, private val userService: AbstractUserService): AbstractAuthService {
 
     companion object {
-        const val PASSWORDS_DO_NOT_MATCH = "Пароли не совпадают"
+        private const val ERROR_PASSWORDS_DO_NOT_MATCH = "Пароли не совпадают"
+        private const val ERROR_PASSWORD_IS_TOO_SHORT = "Пароль должен содержать минимум 6 символов"
+        private const val ERROR_USER_ALREADY_EXISTS = "Пользователь с таким email уже существует"
+        private const val ERROR_INVALID_CREDENTIALS = "Неверный email или пароль"
+        private const val ERROR_USER_IS_NOT_VERIFIED = "Ваш аккаунт не подтвержден. Обратитесь к администратору для подтверждения вашей учётной записи"
+        private const val ERROR_SOMETHING_WENT_WRONG = "Что-то пошло не так"
+        private const val SIGN_UP_SUCCESS_FIRST = "Регистрация успешна! Вы первый пользователь и автоматически подтверждены"
+        private const val SIGN_UP_SUCCESS = "Регистрация успешна! Ожидайте подтверждения от администратора"
+        private const val SIGN_IN_SUCCESS = "Вход выполнен успешно!"
     }
 
     private val auth = firebase.auth
@@ -25,67 +31,77 @@ class FirebaseAuthService(firebase: Firebase, private val userService: AbstractU
     override fun signIn(
         email: String,
         password: String,
-        onSuccess: (User?) -> Unit
+        handler: (ResultStateWithObject<User>) -> Unit
     ) {
 
         CoroutineScope(Dispatchers.IO).async {
-            Log.i("app", "Signing in with email=$email")
+
             val result = auth.signInWithEmailAndPassword(email, password).await()
-            Log.i("app", "Retrieved firebase account data for $email")
-            val user = userService.findByEmail(result.user!!.email!!)
-            Log.v("app", "Got user: $user")
-            onSuccess(user)
-            Log.v("app", "onSuccess has been called")
+            if (result.user == null) {
+                handler(ResultStateWithObject(ok = false, ERROR_INVALID_CREDENTIALS))
+                return@async
+            }
+
+            val user = userService.findByEmail(result.user!!.email!!)!!
+            if (!user.verified) {
+                handler(ResultStateWithObject(ok = false, ERROR_USER_IS_NOT_VERIFIED))
+                return@async
+            }
+
+            handler(ResultStateWithObject(ok = true, SIGN_IN_SUCCESS, user))
         }
     }
 
 
 
-    override suspend fun signUp(
+    override fun signUp(
         email: String,
         password: String,
-        confirmPassword: String
-    ): ResultStateWithObject<User> {
-        Log.i("app", "Creating user with data: email=$email, password=$password, confirm=$confirmPassword")
+        confirmPassword: String,
+        handler: (ResultStateWithObject<User>) -> Unit
+    ) {
         if (password != confirmPassword) {
-            return ResultStateWithObject(ok = false, PASSWORDS_DO_NOT_MATCH)
+            handler(ResultStateWithObject(ok = false, ERROR_PASSWORDS_DO_NOT_MATCH))
+            return
         }
 
         if (password.length < 6) {
-            return ResultStateWithObject(ok = false, "Пароль должен содержать минимум 6 символов")
+            handler(ResultStateWithObject(ok = false, ERROR_PASSWORD_IS_TOO_SHORT))
+            return
         }
 
-        val user = this.userService.findByEmail(email)
-        if (user != null) {
-            return ResultStateWithObject(ok = false, "Пользователь с таким email уже существует")
+        CoroutineScope(Dispatchers.IO).async {
+            val user: User? = userService.findByEmail(email)
+            if (user != null) {
+                handler(ResultStateWithObject(ok = false, ERROR_USER_ALREADY_EXISTS))
+            }
+
+            val result = auth
+                .createUserWithEmailAndPassword(email, password)
+                .await()
+            if (result.user == null) {
+                handler(ResultStateWithObject(ok = false, ERROR_SOMETHING_WENT_WRONG))
+                return@async
+            }
+
+            val hasVerifiedUsers = userService.hasVerifiedUsers()
+            val newUser = User(
+                id = System.currentTimeMillis().toString(),
+                email = email,
+                verified = !hasVerifiedUsers,
+                verifiedBy = null,
+                createdAt = Date()
+            )
+
+            userService.create(newUser)
+
+            if (!hasVerifiedUsers) {
+                handler(ResultStateWithObject(ok = true, SIGN_UP_SUCCESS_FIRST, newUser))
+                return@async
+            }
+
+            handler(ResultStateWithObject(ok = true, SIGN_UP_SUCCESS, newUser))
         }
-
-        this
-            .auth
-            .createUserWithEmailAndPassword(email, password)
-            //.await()
-
-//        if (!result.isSuccessful) {
-//            return ResultStateWithObject(ok = false, "Что-то пошло не так")
-//        }
-
-        val hasVerifiedUsers = !this.userService.hasVerifiedUsers()
-        val newUser = User(
-            id = System.currentTimeMillis().toString(),
-            email = email,
-            verified = hasVerifiedUsers,
-            verifiedBy = null,
-            createdAt = Date()
-        )
-
-        this.userService.create(newUser)
-
-        if (!hasVerifiedUsers) {
-            return ResultStateWithObject(ok = true, "Регистрация успешна! Вы первый пользователь и автоматически подтверждены.", newUser)
-        }
-
-        return ResultStateWithObject(ok = true, "Регистрация успешна! Ожидайте подтверждения от администратора.", newUser)
-
     }
 
     override suspend fun verify(email: String, verifier: String): Boolean {

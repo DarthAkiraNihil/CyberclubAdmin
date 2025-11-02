@@ -142,42 +142,6 @@ fun AuthScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            val onSucc = {
-                Log.v("app", "Signing in")
-                authService.signIn(signInEmail, signInPassword) { user ->
-                    {
-                        Log.v("app", "On success execution launched")
-                        if (user == null) {
-                            Toast.makeText(
-                                context,
-                                "Неверный email или пароль",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                            return@signIn
-                        }
-
-                        if (!user.verified) {
-                            Toast.makeText(
-                                context,
-                                "Ваш аккаунт не подтвержден. Обратитесь к администратору.",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                            return@signIn
-                        }
-
-                        Store.setCurrentUser(user)
-                        Toast.makeText(
-                            context,
-                            "Вход выполнен успешно!",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        Log.i("app", "ACCESS GRANTED")
-                        onLoginSuccess(user)
-                    }
-                }
-
-            }
-
             when (selectedTab) {
                 AuthTab.SIGN_IN -> SignInTab(
                     email = signInEmail,
@@ -185,47 +149,21 @@ fun AuthScreen(
                     onEmailChange = { signInEmail = it },
                     onPasswordChange = { signInPassword = it },
                     onSignIn = {
-                        Log.v("app", "Signing in")
-                        authService.signIn(signInEmail, signInPassword) { user ->
+                        authService.signIn(signInEmail, signInPassword) { result ->
 
-                                Log.v("app", "On success execution launched")
-                                if (user == null) {
-                                    Toast.makeText(
-                                        context,
-                                        "Неверный email или пароль",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                    Log.w("app", "Incorrect credentials")
-                                    return@signIn
-                                }
-
-                                if (!user.verified) {
-                                    Log.w("app", "Account is not verified")
-                                    Toast.makeText(
-                                        context,
-                                        "Ваш аккаунт не подтвержден. Обратитесь к администратору.",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                    return@signIn
-                                }
-                            Log.i("app", "ACCESS GRANTED 2")
-                                // Store.setCurrentUser(user)
-                            try {
-                                parentActivity.runOnUiThread {
-                                    Toast.makeText(
-                                        context,
-                                        "Вход выполнен успешно!",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                }
-                            } catch (e: Throwable) {
-                                Log.e("app", "EGGOG: $e")
+                            parentActivity.runOnUiThread {
+                                Toast.makeText(
+                                    context,
+                                    result.message,
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             }
-                                Log.i("app", "ACCESS GRANTED")
-                                onLoginSuccess(user)
+                            if (!result.ok) {
+                                return@signIn
                             }
 
-
+                            onLoginSuccess(result.obj!!)
+                        }
                     }
                 )
                 AuthTab.SIGN_UP -> SignUpTab(
@@ -236,13 +174,24 @@ fun AuthScreen(
                     onPasswordChange = { signUpPassword = it },
                     onConfirmPasswordChange = { signUpConfirmPassword = it },
                     onSignUp = {
-                        val result = runBlocking { authService.signUp(signUpEmail, signUpPassword, signUpConfirmPassword) }
-                        Toast.makeText(context, result.message, Toast.LENGTH_SHORT).show()
-                        if (!result.ok) {
-                            return@SignUpTab
-                        }
+                        authService.signUp(signUpEmail, signUpPassword, signUpConfirmPassword) { result ->
+                            parentActivity.runOnUiThread {
+                                Toast.makeText(
+                                    context,
+                                    result.message,
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                            if (!result.ok) {
+                                return@signUp
+                            }
 
-                        onLoginSuccess(result.obj!!)
+                            if (!result.obj!!.verified) {
+                                return@signUp
+                            }
+
+                            onLoginSuccess(result.obj)
+                        }
                     }
                 )
             }
