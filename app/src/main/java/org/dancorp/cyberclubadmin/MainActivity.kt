@@ -43,7 +43,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import org.dancorp.cyberclubadmin.data.Store
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import org.dancorp.cyberclubadmin.model.User
 import org.dancorp.cyberclubadmin.service.Services
 import org.dancorp.cyberclubadmin.service.impl.DefaultServicesLoader
@@ -90,17 +92,21 @@ fun App(
     val context = LocalContext.current
 
     fun updateUnreadCount() {
-        val notifications = Store.getNotifications()
-        val unread = notifications.count { !it.isRead }
-        unreadCount = unread
+        CoroutineScope(Dispatchers.IO).async {
+            val notifications = services.notifications.list()
+            val unread = notifications.count { !it.isRead }
+            unreadCount = unread
+        }
     }
 
     LaunchedEffect(Unit) {
-        val user = Store.getCurrentUser()
-        currentUser = user
+        CoroutineScope(Dispatchers.IO).async {
+            val user = services.auth.currentUser
+            currentUser = user
 
-        if (user != null) {
-            updateUnreadCount()
+            if (user != null) {
+                updateUnreadCount()
+            }
         }
     }
 
@@ -112,7 +118,7 @@ fun App(
 
     fun handleLogout() {
         // Show confirmation dialog
-        Store.setCurrentUser(null)
+        // Store.setCurrentUser(null)
         currentUser = null
         currentScreen = Screen.SESSIONS
     }
@@ -167,12 +173,37 @@ fun App(
                 .padding(paddingValues)
         ) {
             when (currentScreen) {
-                Screen.SESSIONS -> SessionsScreen(parentActivity, services.sessions, services.gameTables, services.subscriptions, services.notifications)
-                Screen.TABLES -> GameTablesScreen()
-                Screen.GAMES -> GamesScreen()
-                Screen.SUBSCRIPTIONS -> SubscriptionsScreen()
-                Screen.NOTIFICATIONS -> NotificationsScreen()
-                Screen.USERS -> UsersScreen()
+                Screen.SESSIONS -> SessionsScreen(
+                    parentActivity,
+                    sessionService = services.sessions,
+                    gameTableService = services.gameTables,
+                    subscriptionService = services.subscriptions,
+                    notificationService = services.notifications
+                )
+                Screen.TABLES -> GameTablesScreen(
+                    parentActivity,
+                    gameService = services.games,
+                    gameTableService = services.gameTables
+                )
+                Screen.GAMES -> GamesScreen(
+                    parentActivity,
+                    gameService = services.games,
+                    gameTableService = services.gameTables
+                )
+                Screen.SUBSCRIPTIONS -> SubscriptionsScreen(
+                    parentActivity,
+                    subscriptionService = services.subscriptions,
+                    subscriptionTypeService = services.subscriptionTypes,
+                )
+                Screen.NOTIFICATIONS -> NotificationsScreen(
+                    parentActivity,
+                    services.notifications,
+                )
+                Screen.USERS -> UsersScreen(
+                    parentActivity,
+                    services.auth,
+                    services.users
+                )
             }
         }
     }

@@ -1,5 +1,6 @@
 package org.dancorp.cyberclubadmin.service.impl
 
+import com.google.android.gms.common.util.UidVerifier
 import org.dancorp.cyberclubadmin.data.AbstractRepository
 import org.dancorp.cyberclubadmin.model.User
 import org.dancorp.cyberclubadmin.service.AbstractUserService
@@ -24,6 +25,14 @@ class UserService(private val repo: AbstractRepository<User>): AbstractUserServi
 
     override suspend fun delete(id: String) {
         this.repo.delete(id)
+    }
+
+    override suspend fun verify(userId: String, verifier: User): Boolean {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun revoke(userId: String): Boolean {
+        TODO("Not yet implemented")
     }
 
     override suspend fun findByEmail(email: String): User? {

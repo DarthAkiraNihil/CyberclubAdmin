@@ -1,12 +1,11 @@
 package org.dancorp.cyberclubadmin.service
 
-import org.dancorp.cyberclubadmin.service.impl.GameService
-
 class ManuallyProvidedServices(
     private val sessionService: AbstractSessionService,
     private val gameTableService: AbstractGameTableService,
     private val gameService: AbstractGameService,
     private val subscriptionService: AbstractSubscriptionService,
+    private val subscriptionTypeService: AbstractSubscriptionTypeService,
     private val notificationService: AbstractNotificationService,
     private val userService: AbstractUserService,
     private val authService: AbstractAuthService
@@ -23,6 +22,9 @@ class ManuallyProvidedServices(
 
     override val subscriptions: AbstractSubscriptionService
         get() = this.subscriptionService
+
+    override val subscriptionTypes: AbstractSubscriptionTypeService
+        get() = this.subscriptionTypeService
 
     override val notifications: AbstractNotificationService
         get() = this.notificationService

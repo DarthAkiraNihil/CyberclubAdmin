@@ -1,5 +1,6 @@
 package org.dancorp.cyberclubadmin.ui.screens
 
+import android.app.Activity
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
@@ -38,8 +39,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import org.dancorp.cyberclubadmin.data.Store
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import org.dancorp.cyberclubadmin.model.User
+import org.dancorp.cyberclubadmin.service.AbstractAuthService
+import org.dancorp.cyberclubadmin.service.AbstractUserService
 import org.dancorp.cyberclubadmin.ui.theme.body1
 import org.dancorp.cyberclubadmin.ui.theme.body2
 import org.dancorp.cyberclubadmin.ui.theme.h5
@@ -48,15 +53,23 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 
 @Composable
-fun UsersScreen() {
+fun UsersScreen(
+    parentActivity: Activity,
+    authService: AbstractAuthService,
+    userService: AbstractUserService,
+) {
     var users by remember { mutableStateOf(emptyList<User>()) }
     var currentUser by remember { mutableStateOf<User?>(null) }
 
     val context = LocalContext.current
 
     fun loadData() {
-        users = Store.getUsers()
-        currentUser = Store.getCurrentUser()
+
+        CoroutineScope(Dispatchers.IO).async {
+            users = userService.list()
+            currentUser = authService.currentUser
+        }
+
     }
 
     LaunchedEffect(Unit) {
@@ -64,18 +77,17 @@ fun UsersScreen() {
     }
 
     fun handleVerifyUser(userId: String) {
-        val allUsers = Store.getUsers().toMutableList()
-        val index = allUsers.indexOfFirst { it.id == userId }
 
-        if (index != -1 && currentUser != null) {
-            allUsers[index] = allUsers[index].copy(
-                verified = true,
-                verifiedBy = currentUser!!.id
-            )
-            Store.saveUsers(allUsers)
-            Toast.makeText(context, "Пользователь подтвержден", Toast.LENGTH_SHORT).show()
+        CoroutineScope(Dispatchers.IO).async {
+
+            userService.verify(userId, currentUser!!)
+            parentActivity.runOnUiThread {
+                Toast.makeText(context, "Пользователь подтвержден", Toast.LENGTH_SHORT).show()
+            }
             loadData()
+
         }
+
     }
 
     val pendingUsers = users.filter { !it.verified }

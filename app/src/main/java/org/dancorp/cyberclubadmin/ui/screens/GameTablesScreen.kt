@@ -1,5 +1,6 @@
 package org.dancorp.cyberclubadmin.ui.screens
 
+import android.app.Activity
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
@@ -54,16 +55,25 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import org.dancorp.cyberclubadmin.data.Store
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import org.dancorp.cyberclubadmin.model.Game
 import org.dancorp.cyberclubadmin.model.GameTable
+import org.dancorp.cyberclubadmin.service.AbstractGameService
+import org.dancorp.cyberclubadmin.service.AbstractGameTableService
+import org.dancorp.cyberclubadmin.service.impl.GameTableService
 import org.dancorp.cyberclubadmin.ui.theme.body2
 import org.dancorp.cyberclubadmin.ui.theme.h5
 import org.dancorp.cyberclubadmin.ui.theme.h6
 import org.dancorp.cyberclubadmin.ui.widgets.AlertCard
 
 @Composable
-fun GameTablesScreen() {
+fun GameTablesScreen(
+    parentActivity: Activity,
+    gameService: AbstractGameService,
+    gameTableService: AbstractGameTableService
+) {
     var tables by remember { mutableStateOf(emptyList<GameTable>()) }
     var games by remember { mutableStateOf(emptyList<Game>()) }
     var isDialogOpen by remember { mutableStateOf(false) }
@@ -74,8 +84,10 @@ fun GameTablesScreen() {
     }
 
     fun loadData() {
-        tables = Store.getTables()
-        games = Store.getGames()
+        CoroutineScope(Dispatchers.IO).async {
+            tables = gameTableService.list()
+            games = gameService.list()
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -105,10 +117,13 @@ fun GameTablesScreen() {
 
     fun handleDelete(tableId: String) {
         // Show confirmation dialog in real implementation
-        val allTables = Store.getTables().filter { it.id != tableId }
-        Store.saveTables(allTables)
-        Toast.makeText(context, "Стол удален", Toast.LENGTH_SHORT).show()
-        loadData()
+        CoroutineScope(Dispatchers.IO).async {
+            gameTableService.delete(tableId)
+            parentActivity.runOnUiThread {
+                Toast.makeText(context, "Стол удален", Toast.LENGTH_SHORT).show()
+            }
+            loadData()
+        }
     }
 
     fun calculateDiskUsed(gameIds: List<String>): Int {
@@ -129,12 +144,39 @@ fun GameTablesScreen() {
             return
         }
 
-        val allTables = Store.getTables().toMutableList()
+        CoroutineScope(Dispatchers.IO).async {
 
-        if (editingTable != null) {
-            val index = allTables.indexOfFirst { it.id == editingTable!!.id }
-            if (index != -1) {
-                allTables[index] = editingTable!!.copy(
+            val allTables = gameTableService.list().toMutableList()
+
+            if (editingTable != null) {
+                val index = allTables.indexOfFirst { it.id == editingTable!!.id }
+                if (index != -1) {
+                    allTables[index] = editingTable!!.copy(
+                        number = formData.number,
+                        cpu = formData.cpu,
+                        ram = formData.ram,
+                        diskTotal = formData.diskTotal,
+                        diskUsed = diskUsed,
+                        gpu = formData.gpu,
+                        hourlyRate = formData.hourlyRate,
+                        installedGames = formData.installedGames
+                    )
+                    CoroutineScope(Dispatchers.IO).async {
+
+                        gameTableService.update(allTables[index].id, allTables[index])
+                        parentActivity.runOnUiThread {
+                            Toast.makeText(context, "Стол обновлен", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            } else {
+                if (allTables.any { it.number == formData.number }) {
+                    Toast.makeText(context, "Стол с таким номером уже существует", Toast.LENGTH_SHORT).show()
+                    return@async
+                }
+
+                val newTable = GameTable(
+                    id = System.currentTimeMillis().toString(),
                     number = formData.number,
                     cpu = formData.cpu,
                     ram = formData.ram,
@@ -144,30 +186,19 @@ fun GameTablesScreen() {
                     hourlyRate = formData.hourlyRate,
                     installedGames = formData.installedGames
                 )
-                Store.saveTables(allTables)
-                Toast.makeText(context, "Стол обновлен", Toast.LENGTH_SHORT).show()
-            }
-        } else {
-            if (allTables.any { it.number == formData.number }) {
-                Toast.makeText(context, "Стол с таким номером уже существует", Toast.LENGTH_SHORT).show()
-                return
+
+                CoroutineScope(Dispatchers.IO).async {
+                    gameTableService.create(newTable)
+                    allTables.add(newTable)
+                    parentActivity.runOnUiThread {
+                        Toast.makeText(context, "Стол добавлен", Toast.LENGTH_SHORT).show()
+                    }
+                }
+
             }
 
-            val newTable = GameTable(
-                id = System.currentTimeMillis().toString(),
-                number = formData.number,
-                cpu = formData.cpu,
-                ram = formData.ram,
-                diskTotal = formData.diskTotal,
-                diskUsed = diskUsed,
-                gpu = formData.gpu,
-                hourlyRate = formData.hourlyRate,
-                installedGames = formData.installedGames
-            )
-            allTables.add(newTable)
-            Store.saveTables(allTables)
-            Toast.makeText(context, "Стол добавлен", Toast.LENGTH_SHORT).show()
         }
+
 
         isDialogOpen = false
         resetForm()

@@ -1,5 +1,6 @@
 package org.dancorp.cyberclubadmin.ui.screens
 
+import android.app.Activity
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
@@ -40,8 +41,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import org.dancorp.cyberclubadmin.data.Store
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import org.dancorp.cyberclubadmin.model.Notification
+import org.dancorp.cyberclubadmin.service.AbstractNotificationService
 import org.dancorp.cyberclubadmin.ui.theme.body2
 import org.dancorp.cyberclubadmin.ui.theme.caption
 import org.dancorp.cyberclubadmin.ui.theme.h5
@@ -50,13 +54,18 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 
 @Composable
-fun NotificationsScreen() {
+fun NotificationsScreen(
+    parentActivity: Activity,
+    notificationService: AbstractNotificationService
+) {
     var notifications by remember { mutableStateOf(emptyList<Notification>()) }
 
     val context = LocalContext.current
 
     fun loadData() {
-        notifications = Store.getNotifications()
+        CoroutineScope(Dispatchers.IO).async {
+            notifications = notificationService.list()
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -65,26 +74,34 @@ fun NotificationsScreen() {
 
 
     fun handleMarkAsRead(notificationId: String) {
-        val allNotifications = Store.getNotifications().toMutableList()
-        val index = allNotifications.indexOfFirst { it.id == notificationId }
+        CoroutineScope(Dispatchers.IO).async {
+            val allNotifications = notificationService.list().toMutableList()
+            val index = allNotifications.indexOfFirst { it.id == notificationId }
 
-        if (index != -1) {
-            allNotifications[index] = allNotifications[index].copy(isRead = true)
-            Store.saveNotifications(allNotifications)
-            loadData()
+            if (index != -1) {
+                allNotifications[index] = allNotifications[index].copy(isRead = true)
+                notificationService.update(allNotifications[index].id, allNotifications[index])
+                loadData()
+            }
         }
+
     }
 
     fun handleDelete(notificationId: String) {
-        val allNotifications = Store.getNotifications().filter { it.id != notificationId }
-        Store.saveNotifications(allNotifications)
-        Toast.makeText(context, "Уведомление удалено", Toast.LENGTH_SHORT).show()
-        loadData()
+        CoroutineScope(Dispatchers.IO).async {
+
+            notificationService.delete(notificationId)
+            parentActivity.runOnUiThread {
+                Toast.makeText(context, "Уведомление удалено", Toast.LENGTH_SHORT).show()
+            }
+            loadData()
+
+        }
     }
 
     fun handleMarkAllAsRead() {
-        val allNotifications = Store.getNotifications().map { it.copy(isRead = true) }
-        Store.saveNotifications(allNotifications)
+        val allNotifications = notifications.map { it.copy(isRead = true) }
+        // Store.saveNotifications(allNotifications)
         Toast.makeText(context, "Все уведомления прочитаны", Toast.LENGTH_SHORT).show()
         loadData()
     }

@@ -6,6 +6,7 @@ interface Services {
     val gameTables: AbstractGameTableService
     val games: AbstractGameService
     val subscriptions: AbstractSubscriptionService
+    val subscriptionTypes: AbstractSubscriptionTypeService
     val notifications: AbstractNotificationService
     val users: AbstractUserService
     val auth: AbstractAuthService

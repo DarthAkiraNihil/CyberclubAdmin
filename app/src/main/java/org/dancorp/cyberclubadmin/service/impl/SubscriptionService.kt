@@ -1,7 +1,6 @@
 package org.dancorp.cyberclubadmin.service.impl
 
 import org.dancorp.cyberclubadmin.data.AbstractRepository
-import org.dancorp.cyberclubadmin.data.Store
 import org.dancorp.cyberclubadmin.model.Subscription
 import org.dancorp.cyberclubadmin.service.AbstractSubscriptionService
 import org.dancorp.cyberclubadmin.shared.ResultState

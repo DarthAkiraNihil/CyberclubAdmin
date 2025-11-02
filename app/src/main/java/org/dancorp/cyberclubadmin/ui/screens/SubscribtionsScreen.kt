@@ -1,5 +1,6 @@
 package org.dancorp.cyberclubadmin.ui.screens
 
+import android.app.Activity
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -30,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -40,9 +42,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import org.dancorp.cyberclubadmin.data.Store
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import org.dancorp.cyberclubadmin.model.Subscription
 import org.dancorp.cyberclubadmin.model.SubscriptionType
+import org.dancorp.cyberclubadmin.service.AbstractSubscriptionService
+import org.dancorp.cyberclubadmin.service.AbstractSubscriptionTypeService
 import org.dancorp.cyberclubadmin.ui.theme.body2
 import org.dancorp.cyberclubadmin.ui.theme.h5
 import org.dancorp.cyberclubadmin.ui.theme.h6
@@ -53,7 +59,11 @@ import java.util.Date
 import kotlin.math.roundToInt
 
 @Composable
-fun SubscriptionsScreen() {
+fun SubscriptionsScreen(
+    parentActivity: Activity,
+    subscriptionService: AbstractSubscriptionService,
+    subscriptionTypeService: AbstractSubscriptionTypeService,
+) {
     var subscriptions by remember { mutableStateOf(emptyList<Subscription>()) }
     var subscriptionTypes by remember { mutableStateOf(emptyList<SubscriptionType>()) }
     var selectedTab by remember { mutableStateOf("subscriptions") }
@@ -61,7 +71,7 @@ fun SubscriptionsScreen() {
     var isTypeDialogOpen by remember { mutableStateOf(false) }
     var isPayDebtDialogOpen by remember { mutableStateOf(false) }
     var selectedSubForDebt by remember { mutableStateOf<Subscription?>(null) }
-    var debtPaymentAmount by remember { mutableStateOf(0.0) }
+    var debtPaymentAmount by remember { mutableDoubleStateOf(0.0) }
 
     var subFormData by remember {
         mutableStateOf(SubscriptionFormData())
@@ -74,8 +84,12 @@ fun SubscriptionsScreen() {
     val context = LocalContext.current
 
     fun loadData() {
-        subscriptions = Store.getSubscriptions()
-        subscriptionTypes = Store.getSubscriptionTypes()
+        CoroutineScope(Dispatchers.IO).async {
+
+            subscriptions = subscriptionService.list()
+            subscriptionTypes = subscriptionTypeService.list()
+
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -104,39 +118,44 @@ fun SubscriptionsScreen() {
             return
         }
 
-        val allSubscriptions = Store.getSubscriptions()
-        val existingActive = allSubscriptions.find {
-            it.email == subFormData.email && it.isActive
+        CoroutineScope(Dispatchers.IO).async {
+
+            val allSubscriptions = subscriptionService.list()
+            val existingActive = allSubscriptions.find {
+                it.email == subFormData.email && it.isActive
+            }
+
+            if (existingActive != null) {
+                Toast.makeText(context, "У этого email уже есть активный абонемент", Toast.LENGTH_SHORT).show()
+                return@async
+            }
+
+            val purchaseDate = Date()
+            val expiryDate = Calendar.getInstance().apply {
+                time = purchaseDate
+                add(Calendar.MONTH, 1)
+            }.time
+
+            val newSubscription = Subscription(
+                id = System.currentTimeMillis().toString(),
+                subscriptionNumber = "SUB-${System.currentTimeMillis().toString().takeLast(6)}",
+                email = subFormData.email,
+                type = SubscriptionType(),
+                purchaseDate = purchaseDate,
+                expiryDate = expiryDate,
+                debt = 0.0,
+                unpaidSessions = 0,
+                isActive = true
+            )
+
+            subscriptionService.create(newSubscription)
+            Toast.makeText(context, "Абонемент создан", Toast.LENGTH_SHORT).show()
+            isSubDialogOpen = false
+            resetSubForm()
+            loadData()
+
         }
 
-        if (existingActive != null) {
-            Toast.makeText(context, "У этого email уже есть активный абонемент", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        val purchaseDate = Date()
-        val expiryDate = Calendar.getInstance().apply {
-            time = purchaseDate
-            add(Calendar.MONTH, 1)
-        }.time
-
-        val newSubscription = Subscription(
-            id = System.currentTimeMillis().toString(),
-            subscriptionNumber = "SUB-${System.currentTimeMillis().toString().takeLast(6)}",
-            email = subFormData.email,
-            type = SubscriptionType(),
-            purchaseDate = purchaseDate,
-            expiryDate = expiryDate,
-            debt = 0.0,
-            unpaidSessions = 0,
-            isActive = true
-        )
-
-        Store.saveSubscriptions(allSubscriptions + newSubscription)
-        Toast.makeText(context, "Абонемент создан", Toast.LENGTH_SHORT).show()
-        isSubDialogOpen = false
-        resetSubForm()
-        loadData()
     }
 
     // ... Other functions would be implemented similarly to previous screens

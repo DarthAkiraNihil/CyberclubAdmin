@@ -7,7 +7,7 @@ interface AbstractAuthService {
 
     fun signIn(email: String, password: String, handler: (ResultStateWithObject<User>) -> Unit)
     fun signUp(email: String, password: String, confirmPassword: String, handler: (ResultStateWithObject<User>) -> Unit)
-    suspend fun verify(email: String, verifier: String): Boolean
-    suspend fun revoke(email: String): Boolean
+
+    val currentUser: User?
 
 }

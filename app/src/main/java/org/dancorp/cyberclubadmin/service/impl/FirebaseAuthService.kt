@@ -27,6 +27,7 @@ class FirebaseAuthService(firebase: Firebase, private val userService: AbstractU
     }
 
     private val auth = firebase.auth
+    private var current: User? = null
 
     override fun signIn(
         email: String,
@@ -48,6 +49,7 @@ class FirebaseAuthService(firebase: Firebase, private val userService: AbstractU
                 return@async
             }
 
+            current = user
             handler(ResultStateWithObject(ok = true, SIGN_IN_SUCCESS, user))
         }
     }
@@ -104,11 +106,6 @@ class FirebaseAuthService(firebase: Firebase, private val userService: AbstractU
         }
     }
 
-    override suspend fun verify(email: String, verifier: String): Boolean {
-        TODO("Not yet implemented")
-    }
-
-    override suspend fun revoke(email: String): Boolean {
-        TODO("Not yet implemented")
-    }
+    override val currentUser: User?
+        get() = this.current
 }
