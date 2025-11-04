@@ -1,5 +1,6 @@
 package org.dancorp.cyberclubadmin.service.impl
 
+import android.widget.Toast
 import com.google.android.gms.common.util.UidVerifier
 import org.dancorp.cyberclubadmin.data.AbstractRepository
 import org.dancorp.cyberclubadmin.model.User
@@ -27,8 +28,24 @@ class UserService(private val repo: AbstractRepository<User>): AbstractUserServi
         this.repo.delete(id)
     }
 
-    override suspend fun verify(userId: String, verifier: User): Boolean {
-        TODO("Not yet implemented")
+    override suspend fun findVerifier(userId: String): User? {
+        val user = this.repo.get(userId)
+        if (user == null || user.verifiedBy == null) {
+            return null
+        }
+
+        return this.repo.get(user.verifiedBy)
+    }
+
+    override suspend fun verify(userId: String, verifier: User) {
+        val user = this.get(userId)!!
+        this.update(
+            userId,
+            user.copy(
+                verified = true,
+                verifiedBy = verifier.id
+            )
+        )
     }
 
     override suspend fun revoke(userId: String): Boolean {

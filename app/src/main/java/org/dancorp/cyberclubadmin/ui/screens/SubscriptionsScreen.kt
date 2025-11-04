@@ -18,30 +18,21 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CreditCard
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -49,14 +40,13 @@ import org.dancorp.cyberclubadmin.model.Subscription
 import org.dancorp.cyberclubadmin.model.SubscriptionType
 import org.dancorp.cyberclubadmin.service.AbstractSubscriptionService
 import org.dancorp.cyberclubadmin.service.AbstractSubscriptionTypeService
+import org.dancorp.cyberclubadmin.ui.composables.subscription.SubscriptionTypeCard
 import org.dancorp.cyberclubadmin.ui.theme.body2
 import org.dancorp.cyberclubadmin.ui.theme.h5
-import org.dancorp.cyberclubadmin.ui.theme.h6
 import org.dancorp.cyberclubadmin.ui.widgets.AlertCard
 import org.dancorp.cyberclubadmin.ui.widgets.TabButton
 import java.util.Calendar
 import java.util.Date
-import kotlin.math.roundToInt
 
 @Composable
 fun SubscriptionsScreen(
@@ -69,9 +59,6 @@ fun SubscriptionsScreen(
     var selectedTab by remember { mutableStateOf("subscriptions") }
     var isSubDialogOpen by remember { mutableStateOf(false) }
     var isTypeDialogOpen by remember { mutableStateOf(false) }
-    var isPayDebtDialogOpen by remember { mutableStateOf(false) }
-    var selectedSubForDebt by remember { mutableStateOf<Subscription?>(null) }
-    var debtPaymentAmount by remember { mutableDoubleStateOf(0.0) }
 
     var subFormData by remember {
         mutableStateOf(SubscriptionFormData())
@@ -228,7 +215,7 @@ private fun SubscriptionsTab(
     onOpenCreateDialog: () -> Unit
 ) {
     val activeSubscriptions = subscriptions.filter { it.isActive }
-    val inactiveSubscriptions = subscriptions.filter { !it.isActive }
+    subscriptions.filter { !it.isActive }
 
     Column {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
@@ -293,63 +280,6 @@ private fun SubscriptionTypesTab(
                     subscriptions = subscriptions
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-            }
-        }
-    }
-}
-
-@Composable
-private fun SubscriptionTypeCard(
-    type: SubscriptionType,
-    subscriptions: List<Subscription>
-) {
-    val activeCount = 0 // subscriptions.count { it.type == type.id && it.isActive }
-    val discount = ((1 - type.tariffCoefficient) * 100).roundToInt()
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = type.name, style = MaterialTheme.typography.h6)
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.CreditCard, contentDescription = "Price", modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("${type.pricePerMonth} ₽/мес", style = MaterialTheme.typography.body2)
-                    }
-
-                    if (discount > 0) {
-                        Badge(containerColor = Color.Green.copy(alpha = 0.1f)) {
-                            Text("Скидка $discount%", color = Color.Green, fontSize = 10.sp)
-                        }
-                    }
-                }
-
-                if (activeCount > 0) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Активных абонементов: $activeCount",
-                        style = MaterialTheme.typography.body2,
-                        color = Color.Gray
-                    )
-                }
-            }
-
-            IconButton(onClick = { /* Handle delete */ }) {
-                Icon(Icons.Default.Delete, contentDescription = "Delete")
             }
         }
     }

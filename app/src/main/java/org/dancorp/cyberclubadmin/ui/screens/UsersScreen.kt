@@ -2,28 +2,13 @@ package org.dancorp.cyberclubadmin.ui.screens
 
 import android.app.Activity
 import android.widget.Toast
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Verified
-import androidx.compose.material.icons.filled.VerifiedUser
-import androidx.compose.material3.Badge
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,25 +17,22 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import org.dancorp.cyberclubadmin.model.User
 import org.dancorp.cyberclubadmin.service.AbstractAuthService
 import org.dancorp.cyberclubadmin.service.AbstractUserService
-import org.dancorp.cyberclubadmin.ui.theme.body1
+import org.dancorp.cyberclubadmin.ui.composables.user.PendingUserCard
+import org.dancorp.cyberclubadmin.ui.composables.user.VerifiedUserCard
 import org.dancorp.cyberclubadmin.ui.theme.body2
 import org.dancorp.cyberclubadmin.ui.theme.h5
 import org.dancorp.cyberclubadmin.ui.widgets.AlertCard
-import java.text.SimpleDateFormat
-import java.util.Locale
 
 @Composable
 fun UsersScreen(
@@ -60,16 +42,13 @@ fun UsersScreen(
 ) {
     var users by remember { mutableStateOf(emptyList<User>()) }
     var currentUser by remember { mutableStateOf<User?>(null) }
-
     val context = LocalContext.current
 
     fun loadData() {
-
         CoroutineScope(Dispatchers.IO).async {
             users = userService.list()
             currentUser = authService.currentUser
         }
-
     }
 
     LaunchedEffect(Unit) {
@@ -79,13 +58,11 @@ fun UsersScreen(
     fun handleVerifyUser(userId: String) {
 
         CoroutineScope(Dispatchers.IO).async {
-
             userService.verify(userId, currentUser!!)
             parentActivity.runOnUiThread {
                 Toast.makeText(context, "Пользователь подтвержден", Toast.LENGTH_SHORT).show()
             }
             loadData()
-
         }
 
     }
@@ -156,110 +133,6 @@ fun UsersScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PendingUserCard(
-    user: User,
-    currentUser: User?,
-    onVerify: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFBEB)),
-        border = BorderStroke(1.dp, Color(0xFFFEF3C7))
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = user.email, style = MaterialTheme.typography.body1)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Badge(
-                        containerColor = Color.Transparent,
-                        modifier = Modifier
-                            .border(BorderStroke(1.dp, Color.Gray))
-                    ) {
-                        Text("Не подтвержден", fontSize = 10.sp, color = Color.Gray)
-                    }
-                }
-                Text(
-                    text = "Зарегистрирован: ${SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(user.createdAt)}",
-                    style = MaterialTheme.typography.body2,
-                    color = Color.Gray
-                )
-            }
-
-            if (currentUser?.verified == true) {
-                Button(
-                    onClick = onVerify,
-                    modifier = Modifier.height(36.dp)
-                ) {
-                    Icon(Icons.Default.VerifiedUser, contentDescription = "Verify", modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Подтвердить")
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun VerifiedUserCard(
-    user: User,
-    currentUser: User?,
-    allUsers: List<User>
-) {
-    val isCurrentUser = user.id == currentUser?.id
-    val verifier = user.verifiedBy?.let { verifierId ->
-        allUsers.find { it.id == verifierId }
-    }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(text = user.email, style = MaterialTheme.typography.body1)
-                Spacer(modifier = Modifier.width(8.dp))
-                if (isCurrentUser) {
-                    Badge(containerColor = Color.Blue.copy(alpha = 0.1f)) {
-                        Text("Вы", color = Color.Blue, fontSize = 10.sp)
-                    }
-                }
-                Badge(
-                    containerColor = Color.Green.copy(alpha = 0.1f)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Verified, contentDescription = "Verified", modifier = Modifier.size(12.dp))
-                        Spacer(modifier = Modifier.width(2.dp))
-                        Text("Подтвержден", color = Color.Green, fontSize = 10.sp)
-                    }
-                }
-            }
-
-            Text(
-                text = "Зарегистрирован: ${SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(user.createdAt)}",
-                style = MaterialTheme.typography.body2,
-                color = Color.Gray
-            )
-
-            if (verifier != null) {
-                Text(
-                    text = "Подтвердил: ${verifier.email}",
-                    style = MaterialTheme.typography.body2,
-                    color = Color.Gray
-                )
             }
         }
     }

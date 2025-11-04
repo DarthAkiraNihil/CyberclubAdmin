@@ -1,7 +1,6 @@
 package org.dancorp.cyberclubadmin.ui.screens
 
 import android.app.Activity
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -14,15 +13,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Smartphone
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -35,23 +29,20 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.runBlocking
 import org.dancorp.cyberclubadmin.model.User
 import org.dancorp.cyberclubadmin.service.AbstractAuthService
-import org.dancorp.cyberclubadmin.service.AbstractUserService
+import org.dancorp.cyberclubadmin.ui.composables.auth.SignInTab
+import org.dancorp.cyberclubadmin.ui.composables.auth.SignUpTab
 import org.dancorp.cyberclubadmin.ui.theme.body1
-import org.dancorp.cyberclubadmin.ui.theme.body2
 import org.dancorp.cyberclubadmin.ui.theme.h4
-import org.dancorp.cyberclubadmin.ui.theme.h6
 import org.dancorp.cyberclubadmin.ui.widgets.TabButton
 
 private enum class AuthTab {
     SIGN_IN,
     SIGN_UP
 }
+
 @Composable
 fun AuthScreen(
     parentActivity: Activity,
@@ -164,6 +155,7 @@ fun AuthScreen(
                         }
                     }
                 )
+
                 AuthTab.SIGN_UP -> SignUpTab(
                     email = signUpEmail,
                     password = signUpPassword,
@@ -172,7 +164,11 @@ fun AuthScreen(
                     onPasswordChange = { signUpPassword = it },
                     onConfirmPasswordChange = { signUpConfirmPassword = it },
                     onSignUp = {
-                        authService.signUp(signUpEmail, signUpPassword, signUpConfirmPassword) { result ->
+                        authService.signUp(
+                            signUpEmail,
+                            signUpPassword,
+                            signUpConfirmPassword
+                        ) { result ->
                             parentActivity.runOnUiThread {
                                 Toast.makeText(
                                     context,
@@ -192,138 +188,6 @@ fun AuthScreen(
                         }
                     }
                 )
-            }
-        }
-    }
-}
-
-@Composable
-private fun SignInTab(
-    email: String,
-    password: String,
-    onEmailChange: (String) -> Unit,
-    onPasswordChange: (String) -> Unit,
-    onSignIn: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Text(
-                text = "Вход в систему",
-                style = MaterialTheme.typography.h6,
-                fontWeight = FontWeight.Bold
-            )
-
-            Text(
-                text = "Введите email и пароль для доступа",
-                style = MaterialTheme.typography.body2,
-                color = Color.Gray
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            OutlinedTextField(
-                value = email,
-                onValueChange = onEmailChange,
-                label = { Text("Email") },
-                placeholder = { Text("admin@club.ru") },
-                modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedTextField(
-                value = password,
-                onValueChange = onPasswordChange,
-                label = { Text("Пароль") },
-                modifier = Modifier.fillMaxWidth(),
-                visualTransformation = PasswordVisualTransformation()
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Button(
-                onClick = onSignIn,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Войти")
-            }
-        }
-    }
-}
-
-@Composable
-private fun SignUpTab(
-    email: String,
-    password: String,
-    confirmPassword: String,
-    onEmailChange: (String) -> Unit,
-    onPasswordChange: (String) -> Unit,
-    onConfirmPasswordChange: (String) -> Unit,
-    onSignUp: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Text(
-                text = "Регистрация",
-                style = MaterialTheme.typography.h6,
-                fontWeight = FontWeight.Bold
-            )
-
-            Text(
-                text = "Создайте новый аккаунт администратора",
-                style = MaterialTheme.typography.body2,
-                color = Color.Gray
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            OutlinedTextField(
-                value = email,
-                onValueChange = onEmailChange,
-                label = { Text("Email") },
-                placeholder = { Text("admin@club.ru") },
-                modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedTextField(
-                value = password,
-                onValueChange = onPasswordChange,
-                label = { Text("Пароль") },
-                modifier = Modifier.fillMaxWidth(),
-                visualTransformation = PasswordVisualTransformation()
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedTextField(
-                value = confirmPassword,
-                onValueChange = onConfirmPasswordChange,
-                label = { Text("Подтвердите пароль") },
-                modifier = Modifier.fillMaxWidth(),
-                visualTransformation = PasswordVisualTransformation()
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Button(
-                onClick = onSignUp,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Зарегистрироваться")
             }
         }
     }

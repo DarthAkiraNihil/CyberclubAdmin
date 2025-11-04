@@ -22,7 +22,7 @@ data class User(
         return hashMapOf(
             "id" to this.id,
             "email" to this.email,
-            "isVerified" to this.verified,
+            "verified" to this.verified,
             "verifiedBy" to this.verifiedBy,
             "createdAt" to this.createdAt,
         )

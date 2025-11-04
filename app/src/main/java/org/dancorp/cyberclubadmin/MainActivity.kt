@@ -89,7 +89,7 @@ fun App(
     var currentScreen by remember { mutableStateOf(Screen.SESSIONS) }
     var unreadCount by remember { mutableIntStateOf(0) }
 
-    val context = LocalContext.current
+    LocalContext.current
 
     fun updateUnreadCount() {
         CoroutineScope(Dispatchers.IO).async {
