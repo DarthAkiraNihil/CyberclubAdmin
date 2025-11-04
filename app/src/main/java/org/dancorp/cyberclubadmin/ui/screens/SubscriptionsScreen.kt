@@ -41,12 +41,18 @@ import org.dancorp.cyberclubadmin.model.SubscriptionType
 import org.dancorp.cyberclubadmin.service.AbstractSubscriptionService
 import org.dancorp.cyberclubadmin.service.AbstractSubscriptionTypeService
 import org.dancorp.cyberclubadmin.ui.composables.subscription.SubscriptionTypeCard
+import org.dancorp.cyberclubadmin.ui.composables.subscription.SubscriptionsTab
 import org.dancorp.cyberclubadmin.ui.theme.body2
 import org.dancorp.cyberclubadmin.ui.theme.h5
 import org.dancorp.cyberclubadmin.ui.widgets.AlertCard
 import org.dancorp.cyberclubadmin.ui.widgets.TabButton
 import java.util.Calendar
 import java.util.Date
+
+private enum class SubscriptionsScreenTab {
+    SUBSCRIPTIONS,
+    TYPES
+}
 
 @Composable
 fun SubscriptionsScreen(
@@ -56,7 +62,7 @@ fun SubscriptionsScreen(
 ) {
     var subscriptions by remember { mutableStateOf(emptyList<Subscription>()) }
     var subscriptionTypes by remember { mutableStateOf(emptyList<SubscriptionType>()) }
-    var selectedTab by remember { mutableStateOf("subscriptions") }
+    var selectedTab by remember { mutableStateOf(SubscriptionsScreenTab.SUBSCRIPTIONS) }
     var isSubDialogOpen by remember { mutableStateOf(false) }
     var isTypeDialogOpen by remember { mutableStateOf(false) }
 
@@ -177,14 +183,14 @@ fun SubscriptionsScreen(
         ) {
             TabButton(
                 text = "Абонементы",
-                isSelected = selectedTab == "subscriptions",
-                onClick = { selectedTab = "subscriptions" },
+                isSelected = selectedTab == SubscriptionsScreenTab.SUBSCRIPTIONS,
+                onClick = { selectedTab = SubscriptionsScreenTab.SUBSCRIPTIONS },
                 modifier = Modifier.weight(1f)
             )
             TabButton(
                 text = "Типы",
-                isSelected = selectedTab == "types",
-                onClick = { selectedTab = "types" },
+                isSelected = selectedTab == SubscriptionsScreenTab.TYPES,
+                onClick = { SubscriptionsScreenTab.TYPES },
                 modifier = Modifier.weight(1f)
             )
         }
@@ -192,12 +198,12 @@ fun SubscriptionsScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         when (selectedTab) {
-            "subscriptions" -> SubscriptionsTab(
+            SubscriptionsScreenTab.SUBSCRIPTIONS -> SubscriptionsTab(
                 subscriptions = subscriptions,
                 subscriptionTypes = subscriptionTypes,
                 onOpenCreateDialog = { isSubDialogOpen = true }
             )
-            "types" -> SubscriptionTypesTab(
+            SubscriptionsScreenTab.TYPES -> SubscriptionTypesTab(
                 subscriptionTypes = subscriptionTypes,
                 subscriptions = subscriptions,
                 onOpenCreateDialog = { isTypeDialogOpen = true }
@@ -209,80 +215,12 @@ fun SubscriptionsScreen(
 }
 
 @Composable
-private fun SubscriptionsTab(
-    subscriptions: List<Subscription>,
-    subscriptionTypes: List<SubscriptionType>,
-    onOpenCreateDialog: () -> Unit
-) {
-    val activeSubscriptions = subscriptions.filter { it.isActive }
-    subscriptions.filter { !it.isActive }
-
-    Column {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            Button(
-                onClick = onOpenCreateDialog,
-                modifier = Modifier.height(36.dp)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Создать")
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        if (activeSubscriptions.isEmpty()) {
-            AlertCard(message = "Нет активных абонементов. Создайте новый абонемент.")
-        } else {
-            Text(
-                text = "Активные",
-                style = MaterialTheme.typography.body2,
-                color = Color.Gray
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-
-            LazyColumn {
-                items(activeSubscriptions) { subscription ->
-                    // Subscription card implementation would go here
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-            }
-        }
-
-        // Similar implementation for inactive subscriptions
-    }
-}
-
-@Composable
-private fun SubscriptionTypesTab(
+fun SubscriptionTypesTab(
     subscriptionTypes: List<SubscriptionType>,
     subscriptions: List<Subscription>,
     onOpenCreateDialog: () -> Unit
 ) {
-    Column {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            Button(
-                onClick = onOpenCreateDialog,
-                modifier = Modifier.height(36.dp)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Добавить")
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        LazyColumn {
-            items(subscriptionTypes) { type ->
-                SubscriptionTypeCard(
-                    type = type,
-                    subscriptions = subscriptions
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-        }
-    }
+    TODO("Not yet implemented")
 }
 
 data class SubscriptionFormData(
