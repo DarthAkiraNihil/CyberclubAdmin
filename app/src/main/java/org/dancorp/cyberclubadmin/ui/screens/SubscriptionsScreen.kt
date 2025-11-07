@@ -1,9 +1,9 @@
 package org.dancorp.cyberclubadmin.ui.screens
 
 import android.app.Activity
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,15 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,14 +32,11 @@ import org.dancorp.cyberclubadmin.model.Subscription
 import org.dancorp.cyberclubadmin.model.SubscriptionType
 import org.dancorp.cyberclubadmin.service.AbstractSubscriptionService
 import org.dancorp.cyberclubadmin.service.AbstractSubscriptionTypeService
-import org.dancorp.cyberclubadmin.ui.composables.subscription.SubscriptionTypeCard
+import org.dancorp.cyberclubadmin.ui.composables.subscription.SubscriptionTypesTab
 import org.dancorp.cyberclubadmin.ui.composables.subscription.SubscriptionsTab
 import org.dancorp.cyberclubadmin.ui.theme.body2
 import org.dancorp.cyberclubadmin.ui.theme.h5
-import org.dancorp.cyberclubadmin.ui.widgets.AlertCard
 import org.dancorp.cyberclubadmin.ui.widgets.TabButton
-import java.util.Calendar
-import java.util.Date
 
 private enum class SubscriptionsScreenTab {
     SUBSCRIPTIONS,
@@ -63,24 +52,28 @@ fun SubscriptionsScreen(
     var subscriptions by remember { mutableStateOf(emptyList<Subscription>()) }
     var subscriptionTypes by remember { mutableStateOf(emptyList<SubscriptionType>()) }
     var selectedTab by remember { mutableStateOf(SubscriptionsScreenTab.SUBSCRIPTIONS) }
+
     var isSubDialogOpen by remember { mutableStateOf(false) }
+    var isPayDebtDialogOpen by remember { mutableStateOf(false) }
     var isTypeDialogOpen by remember { mutableStateOf(false) }
-
-    var subFormData by remember {
-        mutableStateOf(SubscriptionFormData())
-    }
-
-    var typeFormData by remember {
-        mutableStateOf(SubscriptionTypeFormData())
-    }
+    var isConfirmRevokeDialogOpen by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
 
     fun loadData() {
         CoroutineScope(Dispatchers.IO).async {
 
-            subscriptions = subscriptionService.list()
-            subscriptionTypes = subscriptionTypeService.list()
+            Log.i("app", "getting sub screen data")
+
+            try {
+                subscriptions = subscriptionService.list()
+                subscriptionTypes = subscriptionTypeService.list()
+            } catch (e: Throwable) {
+                Log.e("app", e.toString())
+            }
+
+
+            Log.v("app", "sub list $subscriptions")
 
         }
     }
@@ -89,66 +82,67 @@ fun SubscriptionsScreen(
         loadData()
     }
 
-
-
-    fun resetSubForm() {
-        subFormData = SubscriptionFormData()
-    }
-
-    fun resetTypeForm() {
-        typeFormData = SubscriptionTypeFormData()
-    }
-
-    fun handleCreateSubscription() {
-        if (subFormData.email.isBlank()) {
-            Toast.makeText(context, "Заполните все поля", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        val emailRegex = Regex("^[\\w.-]+@[\\w.-]+\\.\\w+\$")
-        if (!emailRegex.matches(subFormData.email)) {
-            Toast.makeText(context, "Введите корректный email", Toast.LENGTH_SHORT).show()
-            return
-        }
-
+    fun handleCreateSubscription(email: String, type: SubscriptionType) {
         CoroutineScope(Dispatchers.IO).async {
 
-            val allSubscriptions = subscriptionService.list()
-            val existingActive = allSubscriptions.find {
-                it.email == subFormData.email && it.isActive
+            val result = subscriptionService.create(email, type)
+            parentActivity.runOnUiThread {
+                Toast
+                    .makeText(context, result.message, Toast.LENGTH_SHORT)
+                    .show()
             }
+            loadData()
+        }
+    }
 
-            if (existingActive != null) {
-                Toast.makeText(context, "У этого email уже есть активный абонемент", Toast.LENGTH_SHORT).show()
-                return@async
+    fun handlePayDebt(sub: Subscription, amount: Double) {
+        CoroutineScope(Dispatchers.IO).async {
+
+            val result = subscriptionService.payDebt(sub, amount)
+            parentActivity.runOnUiThread {
+                Toast
+                    .makeText(context, result.message, Toast.LENGTH_SHORT)
+                    .show()
             }
+            loadData()
+        }
+    }
 
-            val purchaseDate = Date()
-            val expiryDate = Calendar.getInstance().apply {
-                time = purchaseDate
-                add(Calendar.MONTH, 1)
-            }.time
+    fun handleExtendSubscription(sub: Subscription) {
+        CoroutineScope(Dispatchers.IO).async {
+            val result = subscriptionService.extendSubscription(sub)
+            parentActivity.runOnUiThread {
+                Toast
+                    .makeText(context, result.message, Toast.LENGTH_SHORT)
+                    .show()
+            }
+            loadData()
+        }
+    }
 
-            val newSubscription = Subscription(
-                id = System.currentTimeMillis().toString(),
-                subscriptionNumber = "SUB-${System.currentTimeMillis().toString().takeLast(6)}",
-                email = subFormData.email,
-                type = SubscriptionType(),
-                purchaseDate = purchaseDate,
-                expiryDate = expiryDate,
-                debt = 0.0,
-                unpaidSessions = 0,
-                isActive = true
-            )
-
-            subscriptionService.create(newSubscription)
-            Toast.makeText(context, "Абонемент создан", Toast.LENGTH_SHORT).show()
-            isSubDialogOpen = false
-            resetSubForm()
+    fun handleRevokeSubscription(sub: Subscription) {
+        CoroutineScope(Dispatchers.IO).async {
+            val result = subscriptionService.revokeSubscription(sub)
+            parentActivity.runOnUiThread {
+                Toast
+                    .makeText(context, result.message, Toast.LENGTH_SHORT)
+                    .show()
+            }
             loadData()
 
         }
+    }
 
+    fun handleCreateType(name: String, pricePerMonth: Double, tariffCoefficient: Double) {
+        CoroutineScope(Dispatchers.IO).async {
+            val result = subscriptionTypeService.create(name, pricePerMonth, tariffCoefficient)
+            parentActivity.runOnUiThread {
+                Toast
+                    .makeText(context, result.message, Toast.LENGTH_SHORT)
+                    .show()
+            }
+            loadData()
+        }
     }
 
     // ... Other functions would be implemented similarly to previous screens
@@ -190,7 +184,7 @@ fun SubscriptionsScreen(
             TabButton(
                 text = "Типы",
                 isSelected = selectedTab == SubscriptionsScreenTab.TYPES,
-                onClick = { SubscriptionsScreenTab.TYPES },
+                onClick = { selectedTab = SubscriptionsScreenTab.TYPES },
                 modifier = Modifier.weight(1f)
             )
         }
@@ -201,35 +195,18 @@ fun SubscriptionsScreen(
             SubscriptionsScreenTab.SUBSCRIPTIONS -> SubscriptionsTab(
                 subscriptions = subscriptions,
                 subscriptionTypes = subscriptionTypes,
-                onOpenCreateDialog = { isSubDialogOpen = true }
+                onCreateSubscription = ::handleCreateSubscription,
+                onPayDebt = ::handlePayDebt,
+                onExtendSubscription = ::handleExtendSubscription,
+                onRevokeSubscription = ::handleRevokeSubscription,
             )
             SubscriptionsScreenTab.TYPES -> SubscriptionTypesTab(
                 subscriptionTypes = subscriptionTypes,
                 subscriptions = subscriptions,
-                onOpenCreateDialog = { isTypeDialogOpen = true }
+                onCreateType = ::handleCreateType
             )
         }
     }
 
     // Dialogs would be implemented here similar to previous screens
 }
-
-@Composable
-fun SubscriptionTypesTab(
-    subscriptionTypes: List<SubscriptionType>,
-    subscriptions: List<Subscription>,
-    onOpenCreateDialog: () -> Unit
-) {
-    TODO("Not yet implemented")
-}
-
-data class SubscriptionFormData(
-    val email: String = "",
-    val typeId: SubscriptionType = SubscriptionType()
-)
-
-data class SubscriptionTypeFormData(
-    val name: String = "",
-    val pricePerMonth: Double = 1000.0,
-    val tariffCoefficient: Double = 1.0
-)

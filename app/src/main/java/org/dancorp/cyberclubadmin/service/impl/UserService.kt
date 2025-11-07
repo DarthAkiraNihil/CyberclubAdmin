@@ -1,7 +1,5 @@
 package org.dancorp.cyberclubadmin.service.impl
 
-import android.widget.Toast
-import com.google.android.gms.common.util.UidVerifier
 import org.dancorp.cyberclubadmin.data.AbstractRepository
 import org.dancorp.cyberclubadmin.model.User
 import org.dancorp.cyberclubadmin.service.AbstractUserService

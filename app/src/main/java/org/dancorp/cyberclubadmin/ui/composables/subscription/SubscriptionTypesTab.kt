@@ -16,6 +16,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.dancorp.cyberclubadmin.model.Subscription
@@ -23,15 +27,18 @@ import org.dancorp.cyberclubadmin.model.SubscriptionType
 
 
 @Composable
-private fun SubscriptionTypesTab(
+fun SubscriptionTypesTab(
     subscriptionTypes: List<SubscriptionType>,
     subscriptions: List<Subscription>,
-    onOpenCreateDialog: () -> Unit
+    onCreateType: (String, Double, Double) -> Unit
 ) {
+
+    var isCreateTypeDialogOpen by remember { mutableStateOf(false) }
+
     Column {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
             Button(
-                onClick = onOpenCreateDialog,
+                onClick = { isCreateTypeDialogOpen = true },
                 modifier = Modifier.height(36.dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(16.dp))
@@ -52,4 +59,13 @@ private fun SubscriptionTypesTab(
             }
         }
     }
+
+    CreateSubscriptionTypeDialog(
+        isCreateTypeDialogOpen,
+        { isCreateTypeDialogOpen = false },
+        { n, p, c ->
+            onCreateType(n, p, c)
+            isCreateTypeDialogOpen = false
+        },
+    )
 }

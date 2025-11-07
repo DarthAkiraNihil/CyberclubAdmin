@@ -17,6 +17,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -29,15 +33,20 @@ import org.dancorp.cyberclubadmin.ui.widgets.AlertCard
 fun SubscriptionsTab(
     subscriptions: List<Subscription>,
     subscriptionTypes: List<SubscriptionType>,
-    onOpenCreateDialog: () -> Unit
+    onCreateSubscription: (String, SubscriptionType) -> Unit,
+    onPayDebt: (Subscription, Double) -> Unit,
+    onExtendSubscription: (Subscription) -> Unit,
+    onRevokeSubscription: (Subscription) -> Unit,
 ) {
-    val activeSubscriptions = subscriptions.filter { it.isActive }
-    subscriptions.filter { !it.isActive }
+
+    var isCreateSubscriptionDialogOpen by remember { mutableStateOf(false) }
+
+    val activeSubscriptions = subscriptions.filter { it.active }
 
     Column {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
             Button(
-                onClick = onOpenCreateDialog,
+                onClick = { isCreateSubscriptionDialogOpen = true },
                 modifier = Modifier.height(36.dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(16.dp))
@@ -59,13 +68,27 @@ fun SubscriptionsTab(
             Spacer(modifier = Modifier.height(8.dp))
 
             LazyColumn {
-                items(activeSubscriptions) { subscription ->
-                    // Subscription card implementation would go here
-                    Spacer(modifier = Modifier.height(8.dp))
+                items(activeSubscriptions) { sub ->
+                    SubscriptionCard(
+                        sub,
+                        onPayDebt,
+                        onExtendSubscription,
+                        onRevokeSubscription
+                    )
                 }
             }
         }
 
         // Similar implementation for inactive subscriptions
     }
+
+    CreateSubscriptionDialog(
+        isCreateSubscriptionDialogOpen,
+        { isCreateSubscriptionDialogOpen = false },
+        subscriptionTypes,
+        { s, t ->
+            onCreateSubscription(s, t)
+            isCreateSubscriptionDialogOpen = false
+        }
+    )
 }

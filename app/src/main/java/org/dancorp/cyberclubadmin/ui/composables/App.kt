@@ -85,7 +85,11 @@ fun App(
     }
 
     if (currentUser == null) {
-        AuthScreen(parentActivity = parentActivity, onLoginSuccess = { handleLoginSuccess(it) }, authService = services.auth)
+        AuthScreen(
+            parentActivity = parentActivity,
+            onLoginSuccess = { handleLoginSuccess(it) },
+            authService = services.auth
+        )
         return
     }
 

@@ -36,7 +36,7 @@ fun SubscriptionTypeCard(
     type: SubscriptionType,
     subscriptions: List<Subscription>
 ) {
-    val activeCount = 0 // subscriptions.count { it.type == type.id && it.isActive }
+    val activeCount = subscriptions.count { it.type == type && it.active }
     val discount = ((1 - type.tariffCoefficient) * 100).roundToInt()
 
     Card(

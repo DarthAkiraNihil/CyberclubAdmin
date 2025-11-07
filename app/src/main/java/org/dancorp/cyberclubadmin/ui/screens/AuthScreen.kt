@@ -40,9 +40,10 @@ import org.dancorp.cyberclubadmin.ui.widgets.TabButton
 
 private enum class AuthTab {
     SIGN_IN,
-    SIGN_UP
+    SIGN_UP,
 }
 
+// FINISHED
 @Composable
 fun AuthScreen(
     parentActivity: Activity,

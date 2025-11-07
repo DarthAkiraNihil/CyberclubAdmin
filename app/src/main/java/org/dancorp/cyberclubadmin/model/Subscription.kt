@@ -1,5 +1,6 @@
 package org.dancorp.cyberclubadmin.model
 
+import org.dancorp.cyberclubadmin.getDaysUntilExpiry
 import org.dancorp.cyberclubadmin.shared.ResultState
 import org.dancorp.cyberclubadmin.util.Mappable
 import org.dancorp.cyberclubadmin.util.WithId
@@ -14,7 +15,7 @@ data class Subscription(
     val expiryDate: Date,
     val debt: Double,
     val unpaidSessions: Int,
-    val isActive: Boolean
+    val active: Boolean
 ): Mappable, WithId {
 
     companion object {
@@ -26,6 +27,8 @@ data class Subscription(
         private const val ERROR_DEBT_LIMIT_REACHED = "Сумма долга превышает $MAX_DEBT ₽"
 
     }
+
+    constructor(): this("", "", "", SubscriptionType(), Date(), Date(), 0.0, 0, false)
 
     override fun id(): String {
         return this.id
@@ -41,7 +44,7 @@ data class Subscription(
             "expiryDate" to this.expiryDate,
             "debt" to this.debt,
             "unpaidSessions" to this.unpaidSessions,
-            "isActive" to this.isActive,
+            "isActive" to this.active,
         )
     }
 
@@ -53,6 +56,16 @@ data class Subscription(
             return ResultState(false, ERROR_DEBT_LIMIT_REACHED)
         }
         return ResultState(true)
+    }
+
+    fun isExpiringSoon(): Boolean {
+        val daysLeft = getDaysUntilExpiry(this.expiryDate)
+        return daysLeft <= 7 && daysLeft > 0
+    }
+
+    fun isExpired(): Boolean {
+        val daysLeft = getDaysUntilExpiry(this.expiryDate)
+        return daysLeft <= 0
     }
 
 }
