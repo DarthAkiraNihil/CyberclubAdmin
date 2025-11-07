@@ -6,7 +6,7 @@ import org.dancorp.cyberclubadmin.shared.ResultStateWithObject
 
 interface AbstractGameTableService: CrudService<GameTable> {
 
-    fun isTableAvailable(tableId: String): Boolean
+    suspend fun isTableAvailable(tableId: String): Boolean
     suspend fun listAvailableTables(): List<GameTable>
     suspend fun anyHasGameInstalled(game: Game): Boolean
 

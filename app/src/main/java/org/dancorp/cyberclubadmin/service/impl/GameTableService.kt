@@ -1,10 +1,5 @@
 package org.dancorp.cyberclubadmin.service.impl
 
-import android.widget.Toast
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.runBlocking
 import org.dancorp.cyberclubadmin.data.AbstractRepository
 import org.dancorp.cyberclubadmin.model.Game
 import org.dancorp.cyberclubadmin.model.GameTable
@@ -52,12 +47,10 @@ class GameTableService(
         this.gameTableRepo.delete(id)
     }
 
-    override fun isTableAvailable(tableId: String): Boolean {
-        return runBlocking {
-            sessionsRepo.list().find {
-                it.tableId == tableId && it.isActive
-            } != null
-        }
+    override suspend fun isTableAvailable(tableId: String): Boolean {
+        return sessionsRepo.list().find {
+            it.tableId == tableId && it.active
+        } == null
     }
 
     override suspend fun listAvailableTables(): List<GameTable> {

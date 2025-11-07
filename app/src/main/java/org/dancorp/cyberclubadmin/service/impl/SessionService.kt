@@ -68,8 +68,8 @@ class SessionService(
             remainingMinutes = bookedMinutes,
             basePrice = basePrice.toDouble(),
             finalPrice = finalPrice,
-            isActive = true,
-            isPaidForDebt = payAsDebt,
+            active = true,
+            paidForDebt = payAsDebt,
             createdAt = Date()
         )
         this.create(newSession)
@@ -90,7 +90,7 @@ class SessionService(
     }
 
     override suspend fun listActive(): List<Session> {
-        return this.repo.list().filter { it.isActive }
+        return this.repo.list().filter { it.active }
     }
 
     override suspend fun extend(sessionId: String) {
@@ -122,7 +122,7 @@ class SessionService(
         val actualPrice = (table.hourlyRate * (actualMinutes / 60.0)) * sub.type.tariffCoefficient
 
         this.update(sessionId, session.copy(
-            isActive = false,
+            active = false,
             finalPrice = actualPrice,
             remainingMinutes = 0
         ))

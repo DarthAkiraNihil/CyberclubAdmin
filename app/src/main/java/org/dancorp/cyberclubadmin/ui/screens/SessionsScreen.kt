@@ -1,6 +1,7 @@
 package org.dancorp.cyberclubadmin.ui.screens
 
 import android.app.Activity
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -23,7 +24,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -47,7 +47,7 @@ import org.dancorp.cyberclubadmin.service.AbstractSessionService
 import org.dancorp.cyberclubadmin.service.AbstractSubscriptionService
 import org.dancorp.cyberclubadmin.ui.composables.session.CompletedSessionCard
 import org.dancorp.cyberclubadmin.ui.composables.session.CreateSessionDialog
-import org.dancorp.cyberclubadmin.ui.composables.session.SessionCard
+import org.dancorp.cyberclubadmin.ui.composables.session.ActiveSessionCard
 import org.dancorp.cyberclubadmin.ui.theme.body2
 import org.dancorp.cyberclubadmin.ui.theme.h5
 import org.dancorp.cyberclubadmin.ui.widgets.AlertCard
@@ -64,12 +64,9 @@ fun SessionsScreen(
 ) {
     var sessions by remember { mutableStateOf(emptyList<Session>()) }
     var subscriptions by remember { mutableStateOf(emptyList<Subscription>()) }
-    var tables by remember { mutableStateOf(emptyList<GameTable>()) }
-    var isCreateOpen by remember { mutableStateOf(false) }
-    var selectedTable by remember { mutableStateOf("") }
-    var selectedSubscription by remember { mutableStateOf("") }
-    var bookedHours by remember { mutableIntStateOf(1) }
-    var payAsDebt by remember { mutableStateOf(false) }
+    var availableTables by remember { mutableStateOf(emptyList<GameTable>()) }
+
+    var isCreateDialogOpen by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
 
@@ -77,7 +74,8 @@ fun SessionsScreen(
         CoroutineScope(Dispatchers.IO).async {
             sessions = sessionService.list()
             subscriptions = subscriptionService.listActive()
-            tables = gameTableService.list()
+            availableTables = gameTableService.listAvailableTables()
+            Log.i("app", "AVATA: $availableTables")
         }
     }
 
@@ -89,7 +87,7 @@ fun SessionsScreen(
         val activeSessions = sessionService.list()
         val updatedSessions = activeSessions.map { session ->
 
-            if (session.isActive) {
+            if (session.active) {
                 session
                 return
             }
@@ -126,18 +124,11 @@ fun SessionsScreen(
         sessions = updatedSessions
     }
 
-    fun handleCreateSession() {
-        if (selectedTable.isEmpty() || selectedSubscription.isEmpty()) {
-            Toast.makeText(context, "Выберите стол и абонемент", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        val subscription = subscriptions.find { it.id == selectedSubscription }
-        val table = tables.find { it.id == selectedTable }
+    fun handleCreateSession(sub: Subscription, table: GameTable, bookedHours: Int, payAsDebt: Boolean) {
 
         CoroutineScope(Dispatchers.IO).async {
             val result = sessionService.create(
-                subscription,
+                sub,
                 table,
                 bookedHours,
                 payAsDebt,
@@ -147,13 +138,10 @@ fun SessionsScreen(
                 Toast.makeText(context, result.message, Toast.LENGTH_SHORT).show()
             }
 
-            isCreateOpen = false
-            selectedTable = ""
-            selectedSubscription = ""
-            bookedHours = 1
-            payAsDebt = false
+            isCreateDialogOpen = false
             loadData()
         }
+
     }
 
     fun handleExtendSession(sessionId: String) {
@@ -182,8 +170,11 @@ fun SessionsScreen(
         }
     }
 
-    val activeSessions = sessions.filter { it.isActive }
-    val completedSessions = sessions.filter { !it.isActive }.take(5)
+    val activeSessions = sessions.filter { it.active }
+    val completedSessions = sessions.filter { !it.active }.take(5)
+
+    Log.i("app", "ACT: $activeSessions")
+    Log.i("app", "CO: $completedSessions")
 
     Column(
         modifier = Modifier
@@ -210,7 +201,7 @@ fun SessionsScreen(
             }
 
             Button(
-                onClick = { isCreateOpen = true },
+                onClick = { isCreateDialogOpen = true },
                 modifier = Modifier.height(36.dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(16.dp))
@@ -232,13 +223,13 @@ fun SessionsScreen(
                 val subscription = subscriptions.find { it.id == session.subscriptionId }
                 val isExpired = session.remainingMinutes <= 0
 
-                SessionCard(
+                ActiveSessionCard(
                     session = session,
                     table = table,
                     subscription = subscription,
                     isExpired = isExpired,
-                    onExtend = { handleExtendSession(session.id) },
-                    onEnd = { handleEndSession(session.id) }
+                    onExtendSession = { handleExtendSession(session.id) },
+                    onEndSession = { handleEndSession(session.id) }
                 )
                 Spacer(modifier = Modifier.height(8.dp))
             }
@@ -264,23 +255,14 @@ fun SessionsScreen(
     }
 
     // Create Session Dialog
-    if (isCreateOpen) {
-        CreateSessionDialog(
-            availableTables = runBlocking { gameTableService.listAvailableTables() },
-            subscriptions = subscriptions,
-            selectedTable = selectedTable,
-            selectedSubscription = selectedSubscription,
-            bookedHours = bookedHours,
-            payAsDebt = payAsDebt,
-            onTableSelect = { selectedTable = it },
-            onSubscriptionSelect = { selectedSubscription = it },
-            onBookedHoursChange = { bookedHours = it },
-            onPayAsDebtChange = { payAsDebt = it },
-            onDismiss = { isCreateOpen = false },
-            onSubmit = { handleCreateSession() },
-            canCreateSession = Subscription::canCreateSession
-        )
-    }
+    CreateSessionDialog(
+        show = isCreateDialogOpen,
+        onDismiss = { isCreateDialogOpen = false },
+        availableTables = availableTables,
+        subscriptions = subscriptions,
+        canCreateSession = Subscription::canCreateSession,
+        onCreateSession = ::handleCreateSession
+    )
 }
 
 

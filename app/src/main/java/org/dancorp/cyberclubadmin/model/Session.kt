@@ -14,11 +14,13 @@ data class Session(
     val remainingMinutes: Int,
     val basePrice: Double,
     val finalPrice: Double,
-    val isActive: Boolean,
-    val isPaidForDebt: Boolean,
+    val active: Boolean,
+    val paidForDebt: Boolean,
     val createdAt: Date
 
 ): Mappable, WithId {
+
+    constructor(): this("", "", "", Date(), 0, 0, 0.0, 0.0, false, false, Date())
 
     override fun id(): String {
         return this.id
@@ -34,8 +36,8 @@ data class Session(
             "remainingMinutes" to this.remainingMinutes,
             "basePrice" to this.basePrice,
             "finalPrice" to this.finalPrice,
-            "isActive" to this.isActive,
-            "isPaidForDebt" to this.isPaidForDebt,
+            "isActive" to this.active,
+            "isPaidForDebt" to this.paidForDebt,
             "createdAt" to this.createdAt,
         )
     }

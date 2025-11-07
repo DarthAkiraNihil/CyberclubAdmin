@@ -1,5 +1,6 @@
 package org.dancorp.cyberclubadmin.ui.composables.session
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -32,21 +33,29 @@ import org.dancorp.cyberclubadmin.model.GameTable
 import org.dancorp.cyberclubadmin.model.Session
 import org.dancorp.cyberclubadmin.model.Subscription
 import org.dancorp.cyberclubadmin.ui.composables.shared.GridLayout
+import org.dancorp.cyberclubadmin.ui.composables.shared.MinutesLeft
 import org.dancorp.cyberclubadmin.ui.theme.body2
 import org.dancorp.cyberclubadmin.ui.theme.h6
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Locale
 
 
+@SuppressLint("DefaultLocale")
 @Composable
-fun SessionCard(
+fun ActiveSessionCard(
     session: Session,
     table: GameTable?,
     subscription: Subscription?,
     isExpired: Boolean,
-    onExtend: () -> Unit,
-    onEnd: () -> Unit
+    onExtendSession: () -> Unit,
+    onEndSession: () -> Unit
 ) {
+
+    val cal = Calendar.getInstance()
+    cal.time = session.createdAt
+    cal.add(Calendar.MINUTE, session.bookedMinutes)
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -61,7 +70,7 @@ fun SessionCard(
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "Стол ${session.tableId}",
+                            text = "Стол №${table?.number} (${session.tableId})",
                             style = MaterialTheme.typography.h6,
                             fontWeight = FontWeight.Bold
                         )
@@ -79,10 +88,10 @@ fun SessionCard(
                     )
                 }
                 Badge(
-                    containerColor = if (session.isPaidForDebt) Color.LightGray else Color.Blue.copy(alpha = 0.1f)
+                    containerColor = if (session.paidForDebt) Color.LightGray else Color.Blue.copy(alpha = 0.1f)
                 ) {
                     Text(
-                        text = if (session.isPaidForDebt) "В долг" else "Оплата",
+                        text = if (session.paidForDebt) "В долг" else "Оплата",
                         fontSize = 12.sp
                     )
                 }
@@ -94,7 +103,8 @@ fun SessionCard(
             GridLayout(
                 items = listOf(
                     Pair("Забронировано:", "${session.bookedMinutes / 60} ч ${session.bookedMinutes % 60} мин"),
-                    Pair("Осталось:", "${session.remainingMinutes / 60} ч ${session.remainingMinutes % 60} мин"),
+//                    Pair("Осталось:", "${session.remainingMinutes / 60} ч ${session.remainingMinutes % 60} мин"),
+                    Pair("Осталось:", "${MinutesLeft(cal.time)} мин"),
                     Pair("Начало:", SimpleDateFormat("HH:mm", Locale.getDefault()).format(session.startTime)),
                     Pair("К оплате:", "${String.format("%.2f", session.finalPrice)} ₽")
                 ),
@@ -106,7 +116,7 @@ fun SessionCard(
             // Actions
             Row(modifier = Modifier.fillMaxWidth()) {
                 Button(
-                    onClick = onExtend,
+                    onClick = onExtendSession,
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
                     border = BorderStroke(1.dp, Color.Gray)
@@ -119,7 +129,7 @@ fun SessionCard(
                 Spacer(modifier = Modifier.width(8.dp))
 
                 Button(
-                    onClick = onEnd,
+                    onClick = onEndSession,
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
                 ) {
