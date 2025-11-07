@@ -11,6 +11,8 @@ data class Game(
     val diskSpace: Int
 ): Mappable, WithId {
 
+    constructor(): this("", "", "", "", 0)
+
     override fun id(): String {
         return this.id
     }

@@ -1,5 +1,6 @@
 package org.dancorp.cyberclubadmin.ui.composables.table
 
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -23,38 +24,83 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import org.dancorp.cyberclubadmin.model.Game
+import org.dancorp.cyberclubadmin.model.GameTable
 import org.dancorp.cyberclubadmin.ui.theme.body2
-
-data class GameTableFormData(
-    val number: Int = 1,
-    val cpu: String = "",
-    val ram: Int = 16,
-    val diskTotal: Int = 500,
-    val gpu: String = "",
-    val hourlyRate: Int = 100,
-    val installedGames: MutableList<String> = mutableListOf()
-)
 
 @Composable
 fun GameTableDialog(
-    formData: GameTableFormData,
+    show: Boolean,
     games: List<Game>,
-    isEditing: Boolean,
-    onFormDataChange: (GameTableFormData) -> Unit,
-    onGameToggle: (String) -> Unit,
+    editingTable: GameTable?,
     onDismiss: () -> Unit,
-    onSubmit: () -> Unit,
-    calculateDiskUsed: (List<String>) -> Int
+    onCreateGameTable: (Int, String, Int, Int, String, Int, List<Game>) -> Unit,
+    onUpdateGameTable: (GameTable, String, Int, Int, String, Int, List<Game>) -> Unit,
+    calculateDiskUsed: (List<String>, List<Game>) -> Int
 ) {
+    Log.i("app", "Mounting game table dialog. games = $games, table = $editingTable")
+
+    var formTableNumber by remember { mutableStateOf("") }
+    var formTableCpu by remember { mutableStateOf("") }
+    var formTableRam by remember { mutableStateOf("16") }
+    var formTableDiskTotal by remember { mutableStateOf("500") }
+    var formTableGpu by remember { mutableStateOf( "") }
+    var formTableHourlyRate by remember { mutableStateOf("100") }
+    var formTableInstalledGames by remember { mutableStateOf(emptyList<String>()) }
+
+    Log.v("app", "fd: ${editingTable?.number}")
+    if (editingTable != null) {
+        formTableNumber = editingTable.number.toString()
+        formTableCpu = editingTable.cpu
+        formTableRam = editingTable.ram.toString()
+        formTableDiskTotal = editingTable.diskTotal.toString()
+        formTableGpu = editingTable.gpu
+        formTableHourlyRate = editingTable.hourlyRate.toString()
+        formTableInstalledGames = editingTable.installedGames
+    }
+
+    fun handleGameToggle(gameId: String) {
+        Log.v("app", "handle change: $gameId, b4: $formTableInstalledGames")
+        if (formTableInstalledGames.contains(gameId)) {
+            Log.v("app", "coto")
+            formTableInstalledGames = formTableInstalledGames.filter { it != gameId }
+        } else {
+            formTableInstalledGames += gameId
+        }
+        Log.v("app", "handle change: $gameId, a4: $formTableInstalledGames")
+    }
+
+    Log.v("app", "fd re: $formTableNumber")
+
+    fun resetForm() {
+        formTableNumber = ""
+        formTableCpu = ""
+        formTableRam = ""
+        formTableDiskTotal = ""
+        formTableGpu = ""
+        formTableHourlyRate = ""
+        formTableInstalledGames = emptyList()
+    }
+
+    if (!show) {
+        return
+    }
+
     AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(if (isEditing) "Редактировать стол" else "Добавить стол") },
+        onDismissRequest = {
+            onDismiss()
+            resetForm()
+        },
+        title = { Text(if (editingTable != null) "Редактировать стол" else "Добавить стол") },
         text = {
             Column {
                 Text(
@@ -66,22 +112,19 @@ fun GameTableDialog(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 OutlinedTextField(
-                    value = formData.number.toString(),
-                    onValueChange = {
-                        val value = it.toIntOrNull() ?: 1
-                        onFormDataChange(formData.copy(number = value))
-                    },
+                    value = formTableNumber,
+                    onValueChange = { formTableNumber = it },
                     label = { Text("Номер стола") },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    enabled = !isEditing
+                    enabled = editingTable == null
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
 
                 OutlinedTextField(
-                    value = formData.cpu,
-                    onValueChange = { onFormDataChange(formData.copy(cpu = it)) },
+                    value = formTableCpu,
+                    onValueChange = { formTableCpu = it },
                     label = { Text("Процессор") },
                     placeholder = { Text("Intel Core i7-12700K") },
                     modifier = Modifier.fillMaxWidth()
@@ -90,8 +133,8 @@ fun GameTableDialog(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 OutlinedTextField(
-                    value = formData.gpu,
-                    onValueChange = { onFormDataChange(formData.copy(gpu = it)) },
+                    value = formTableGpu,
+                    onValueChange = { formTableGpu = it },
                     label = { Text("Видеокарта") },
                     placeholder = { Text("NVIDIA RTX 3070") },
                     modifier = Modifier.fillMaxWidth()
@@ -101,22 +144,16 @@ fun GameTableDialog(
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
-                        value = formData.ram.toString(),
-                        onValueChange = {
-                            val value = it.toIntOrNull() ?: 16
-                            onFormDataChange(formData.copy(ram = value))
-                        },
+                        value = formTableRam,
+                        onValueChange = { formTableRam = it },
                         label = { Text("ОЗУ (ГБ)") },
                         modifier = Modifier.weight(1f),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                     )
 
                     OutlinedTextField(
-                        value = formData.diskTotal.toString(),
-                        onValueChange = {
-                            val value = it.toIntOrNull() ?: 500
-                            onFormDataChange(formData.copy(diskTotal = value))
-                        },
+                        value = formTableDiskTotal,
+                        onValueChange = { formTableDiskTotal = it },
                         label = { Text("Диск (ГБ)") },
                         modifier = Modifier.weight(1f),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
@@ -126,11 +163,8 @@ fun GameTableDialog(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 OutlinedTextField(
-                    value = formData.hourlyRate.toString(),
-                    onValueChange = {
-                        val value = it.toIntOrNull() ?: 100
-                        onFormDataChange(formData.copy(hourlyRate = value))
-                    },
+                    value = formTableHourlyRate,
+                    onValueChange = { formTableHourlyRate = it },
                     label = { Text("Цена (₽/час)") },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
@@ -141,7 +175,7 @@ fun GameTableDialog(
                 // Games selection
                 Column {
                     Text(
-                        text = "Установленные игры (${calculateDiskUsed(formData.installedGames)}/${formData.diskTotal} ГБ)",
+                        text = "Установленные игры (${calculateDiskUsed(formTableInstalledGames, games)}/${formTableDiskTotal} ГБ)",
                         style = MaterialTheme.typography.body2
                     )
                     Spacer(modifier = Modifier.height(4.dp))
@@ -156,13 +190,13 @@ fun GameTableDialog(
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clickable { onGameToggle(game.id) }
+                                        .clickable { handleGameToggle(game.id) }
                                         .padding(8.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Checkbox(
-                                        checked = formData.installedGames.contains(game.id),
-                                        onCheckedChange = { onGameToggle(game.id) }
+                                        checked = formTableInstalledGames.contains(game.id),
+                                        onCheckedChange = { handleGameToggle(game.id) }
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
@@ -177,12 +211,47 @@ fun GameTableDialog(
             }
         },
         confirmButton = {
-            Button(onClick = onSubmit) {
-                Text(if (isEditing) "Сохранить" else "Добавить")
+            Button(onClick = {
+
+                val number = formTableNumber.toIntOrNull()!!
+                val ram = formTableRam.toIntOrNull()!!
+                val diskTotal = formTableDiskTotal.toIntOrNull()!!
+                val hourlyRate = formTableHourlyRate.toIntOrNull()!!
+                val gameObjects = formTableInstalledGames.map { gId ->
+                    games.find { it.id == gId }!!
+                }
+
+                if (editingTable != null) {
+                    onUpdateGameTable(
+                        editingTable,
+                        formTableCpu,
+                        ram,
+                        diskTotal,
+                        formTableGpu,
+                        hourlyRate,
+                        gameObjects
+                    )
+                } else {
+                    onCreateGameTable(
+                        number,
+                        formTableCpu,
+                        ram,
+                        diskTotal,
+                        formTableGpu,
+                        hourlyRate,
+                        gameObjects
+                    )
+                }
+                resetForm()
+            }) {
+                Text(if (editingTable != null) "Сохранить" else "Добавить")
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = {
+                onDismiss()
+                resetForm()
+            }) {
                 Text("Отмена")
             }
         }

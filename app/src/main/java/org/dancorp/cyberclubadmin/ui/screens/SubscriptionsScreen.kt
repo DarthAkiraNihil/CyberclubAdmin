@@ -53,11 +53,6 @@ fun SubscriptionsScreen(
     var subscriptionTypes by remember { mutableStateOf(emptyList<SubscriptionType>()) }
     var selectedTab by remember { mutableStateOf(SubscriptionsScreenTab.SUBSCRIPTIONS) }
 
-    var isSubDialogOpen by remember { mutableStateOf(false) }
-    var isPayDebtDialogOpen by remember { mutableStateOf(false) }
-    var isTypeDialogOpen by remember { mutableStateOf(false) }
-    var isConfirmRevokeDialogOpen by remember { mutableStateOf(false) }
-
     val context = LocalContext.current
 
     fun loadData() {

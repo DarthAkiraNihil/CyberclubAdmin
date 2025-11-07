@@ -41,7 +41,6 @@ import org.dancorp.cyberclubadmin.service.AbstractGameService
 import org.dancorp.cyberclubadmin.service.AbstractGameTableService
 import org.dancorp.cyberclubadmin.ui.composables.table.GameTableCard
 import org.dancorp.cyberclubadmin.ui.composables.table.GameTableDialog
-import org.dancorp.cyberclubadmin.ui.composables.table.GameTableFormData
 import org.dancorp.cyberclubadmin.ui.theme.body2
 import org.dancorp.cyberclubadmin.ui.theme.h5
 import org.dancorp.cyberclubadmin.ui.widgets.AlertCard
@@ -57,9 +56,7 @@ fun GameTablesScreen(
     var isDialogOpen by remember { mutableStateOf(false) }
     var editingTable by remember { mutableStateOf<GameTable?>(null) }
 
-    var formData by remember {
-        mutableStateOf(GameTableFormData())
-    }
+    val context = LocalContext.current
 
     fun loadData() {
         CoroutineScope(Dispatchers.IO).async {
@@ -72,26 +69,40 @@ fun GameTablesScreen(
         loadData()
     }
 
-    fun resetForm() {
-        formData = GameTableFormData(number = tables.size + 1)
-        editingTable = null
+    fun handleCreateGameTable(number: Int, cpu: String, ram: Int, diskTotal: Int, gpu: String, hourlyRate: Int, installedGames: List<Game>) {
+
+        CoroutineScope(Dispatchers.IO).async {
+
+            isDialogOpen = false
+            val result = gameTableService.create(number, cpu, ram, diskTotal, gpu, hourlyRate, installedGames)
+            parentActivity.runOnUiThread {
+                Toast
+                    .makeText(context, result.message, Toast.LENGTH_SHORT)
+                    .show()
+            }
+            loadData()
+
+        }
+
     }
 
-    fun handleEdit(table: GameTable) {
-        editingTable = table
-        formData = GameTableFormData(
-            number = table.number,
-            cpu = table.cpu,
-            ram = table.ram,
-            diskTotal = table.diskTotal,
-            gpu = table.gpu,
-            hourlyRate = table.hourlyRate,
-            installedGames = table.installedGames.toMutableList()
-        )
-        isDialogOpen = true
-    }
+    fun handleUpdateGameTable(table: GameTable, cpu: String, ram: Int, diskTotal: Int, gpu: String, hourlyRate: Int, installedGames: List<Game>) {
 
-    val context = LocalContext.current
+        CoroutineScope(Dispatchers.IO).async {
+
+            isDialogOpen = false
+            val result = gameTableService.update(table, cpu, ram, diskTotal, gpu, hourlyRate, installedGames)
+            parentActivity.runOnUiThread {
+                Toast
+                    .makeText(context, result.message, Toast.LENGTH_SHORT)
+                    .show()
+            }
+            editingTable = null
+            loadData()
+
+        }
+
+    }
 
     fun handleDelete(tableId: String) {
         // Show confirmation dialog in real implementation
@@ -102,94 +113,6 @@ fun GameTablesScreen(
             }
             loadData()
         }
-    }
-
-    fun calculateDiskUsed(gameIds: List<String>): Int {
-        return gameIds.sumOf { gameId ->
-            games.find { it.id == gameId }?.diskSpace ?: 0
-        }
-    }
-
-    fun handleSubmit() {
-        if (formData.cpu.isBlank() || formData.gpu.isBlank()) {
-            Toast.makeText(context, "Заполните все поля", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        val diskUsed = calculateDiskUsed(formData.installedGames)
-        if (diskUsed > formData.diskTotal) {
-            Toast.makeText(context, "Занятое место ($diskUsed ГБ) превышает общий объём (${formData.diskTotal} ГБ)", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        CoroutineScope(Dispatchers.IO).async {
-
-            val allTables = gameTableService.list().toMutableList()
-
-            if (editingTable != null) {
-                val index = allTables.indexOfFirst { it.id == editingTable!!.id }
-                if (index != -1) {
-                    allTables[index] = editingTable!!.copy(
-                        number = formData.number,
-                        cpu = formData.cpu,
-                        ram = formData.ram,
-                        diskTotal = formData.diskTotal,
-                        diskUsed = diskUsed,
-                        gpu = formData.gpu,
-                        hourlyRate = formData.hourlyRate,
-                        installedGames = formData.installedGames
-                    )
-                    CoroutineScope(Dispatchers.IO).async {
-
-                        gameTableService.update(allTables[index].id, allTables[index])
-                        parentActivity.runOnUiThread {
-                            Toast.makeText(context, "Стол обновлен", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                }
-            } else {
-                if (allTables.any { it.number == formData.number }) {
-                    Toast.makeText(context, "Стол с таким номером уже существует", Toast.LENGTH_SHORT).show()
-                    return@async
-                }
-
-                val newTable = GameTable(
-                    id = System.currentTimeMillis().toString(),
-                    number = formData.number,
-                    cpu = formData.cpu,
-                    ram = formData.ram,
-                    diskTotal = formData.diskTotal,
-                    diskUsed = diskUsed,
-                    gpu = formData.gpu,
-                    hourlyRate = formData.hourlyRate,
-                    installedGames = formData.installedGames
-                )
-
-                CoroutineScope(Dispatchers.IO).async {
-                    gameTableService.create(newTable)
-                    allTables.add(newTable)
-                    parentActivity.runOnUiThread {
-                        Toast.makeText(context, "Стол добавлен", Toast.LENGTH_SHORT).show()
-                    }
-                }
-
-            }
-
-        }
-
-
-        isDialogOpen = false
-        resetForm()
-        loadData()
-    }
-
-    fun handleGameToggle(gameId: String) {
-        val newGames = if (formData.installedGames.contains(gameId)) {
-            formData.installedGames.filter { it != gameId }
-        } else {
-            formData.installedGames + gameId
-        }
-        formData = formData.copy(installedGames = newGames.toMutableList())
     }
 
     Column(
@@ -236,7 +159,10 @@ fun GameTablesScreen(
                     GameTableCard(
                         table = table,
                         games = games,
-                        onEdit = { handleEdit(table) },
+                        onEdit = {
+                            editingTable = table
+                            isDialogOpen = true
+                        },
                         onDelete = { handleDelete(table.id) }
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -245,21 +171,16 @@ fun GameTablesScreen(
         }
     }
 
-    if (isDialogOpen) {
-        GameTableDialog(
-            formData = formData,
-            games = games,
-            isEditing = editingTable != null,
-            onFormDataChange = { formData = it },
-            onGameToggle = ::handleGameToggle,
-            onDismiss = {
-                isDialogOpen = false
-                resetForm()
-            },
-            onSubmit = ::handleSubmit,
-            calculateDiskUsed = ::calculateDiskUsed
-        )
-    }
+    GameTableDialog(
+        show = isDialogOpen,
+        games = games,
+        editingTable = editingTable,
+        onDismiss = {
+            isDialogOpen = false
+            editingTable = null
+        },
+        onCreateGameTable = ::handleCreateGameTable,
+        onUpdateGameTable = ::handleUpdateGameTable,
+        calculateDiskUsed = gameService::calculateDiskUsed
+    )
 }
-
-

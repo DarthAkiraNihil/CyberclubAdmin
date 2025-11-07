@@ -39,113 +39,115 @@ fun CreateSubscriptionDialog(
         formType = SubscriptionType()
     }
 
-    if (isSubDialogOpen) {
-        AlertDialog(
-            onDismissRequest = {
-                onDismissRequest()
-                resetForm()
-            },
-            title = {
-                Text("Новый абонемент")
-            },
-            text = {
+    if (!isSubDialogOpen) {
+        return
+    }
+
+    AlertDialog(
+        onDismissRequest = {
+            onDismissRequest()
+            resetForm()
+        },
+        title = {
+            Text("Новый абонемент")
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "Создание абонемента для клиента",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                // Email Input
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(
-                        text = "Создание абонемента для клиента",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    Text("Email клиента")
+                    OutlinedTextField(
+                        value = formEmail,
+                        onValueChange = { newEmail -> formEmail = newEmail },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = {
+                            Text("client@example.com")
+                        },
+                        keyboardOptions = KeyboardOptions.Default.copy(
+                            keyboardType = KeyboardType.Email
+                        ),
+                        singleLine = true
                     )
+                }
 
-                    // Email Input
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                // Subscription Type Dropdown
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("Тип абонемента")
+
+                    var expanded by remember { mutableStateOf(false) }
+                    val selectedType = subscriptionTypes.find { it.id == formType.id }
+
+                    ExposedDropdownMenuBox(
+                        expanded = expanded,
+                        onExpandedChange = { expanded = !expanded }
                     ) {
-                        Text("Email клиента")
                         OutlinedTextField(
-                            value = formEmail,
-                            onValueChange = { newEmail -> formEmail = newEmail },
-                            modifier = Modifier.fillMaxWidth(),
+                            value = selectedType?.let { type ->
+                                "${type.name} - ${type.pricePerMonth} ₽/мес (коэф. ${type.tariffCoefficient})"
+                            } ?: "",
+                            onValueChange = { },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor(),
+                            readOnly = true,
                             placeholder = {
-                                Text("client@example.com")
+                                Text("Выберите тип")
                             },
-                            keyboardOptions = KeyboardOptions.Default.copy(
-                                keyboardType = KeyboardType.Email
-                            ),
-                            singleLine = true
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                            },
+                            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
                         )
-                    }
 
-                    // Subscription Type Dropdown
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text("Тип абонемента")
-
-                        var expanded by remember { mutableStateOf(false) }
-                        val selectedType = subscriptionTypes.find { it.id == formType.id }
-
-                        ExposedDropdownMenuBox(
+                        ExposedDropdownMenu(
                             expanded = expanded,
-                            onExpandedChange = { expanded = !expanded }
+                            onDismissRequest = { expanded = false }
                         ) {
-                            OutlinedTextField(
-                                value = selectedType?.let { type ->
-                                    "${type.name} - ${type.pricePerMonth} ₽/мес (коэф. ${type.tariffCoefficient})"
-                                } ?: "",
-                                onValueChange = { },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .menuAnchor(),
-                                readOnly = true,
-                                placeholder = {
-                                    Text("Выберите тип")
-                                },
-                                trailingIcon = {
-                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                                },
-                                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
-                            )
-
-                            ExposedDropdownMenu(
-                                expanded = expanded,
-                                onDismissRequest = { expanded = false }
-                            ) {
-                                subscriptionTypes.forEach { type ->
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text("${type.name} - ${type.pricePerMonth} ₽/мес (коэф. ${type.tariffCoefficient})")
-                                        },
-                                        onClick = {
-                                            formType = type
-                                            expanded = false
-                                        }
-                                    )
-                                }
+                            subscriptionTypes.forEach { type ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text("${type.name} - ${type.pricePerMonth} ₽/мес (коэф. ${type.tariffCoefficient})")
+                                    },
+                                    onClick = {
+                                        formType = type
+                                        expanded = false
+                                    }
+                                )
                             }
                         }
                     }
                 }
-            },
-            confirmButton = {
-                Button(
-                    onClick = { onCreateSubscription(formEmail, formType) },
-                    enabled = formEmail.isNotBlank() && formType.id.isNotBlank()
-                ) {
-                    Text("Создать")
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        onDismissRequest()
-                        resetForm()
-                    }
-                ) {
-                    Text("Отмена")
-                }
             }
-        )
-    }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onCreateSubscription(formEmail, formType) },
+                enabled = formEmail.isNotBlank() && formType.id.isNotBlank()
+            ) {
+                Text("Создать")
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = {
+                    onDismissRequest()
+                    resetForm()
+                }
+            ) {
+                Text("Отмена")
+            }
+        }
+    )
 }

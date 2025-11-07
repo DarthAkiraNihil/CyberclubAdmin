@@ -1,6 +1,7 @@
 package org.dancorp.cyberclubadmin.ui.screens
 
 import android.app.Activity
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -40,7 +41,6 @@ import org.dancorp.cyberclubadmin.service.AbstractGameService
 import org.dancorp.cyberclubadmin.service.AbstractGameTableService
 import org.dancorp.cyberclubadmin.ui.composables.game.AddGameDialog
 import org.dancorp.cyberclubadmin.ui.composables.game.GameCard
-import org.dancorp.cyberclubadmin.ui.composables.game.GameFormData
 import org.dancorp.cyberclubadmin.ui.theme.body2
 import org.dancorp.cyberclubadmin.ui.theme.h5
 import org.dancorp.cyberclubadmin.ui.widgets.AlertCard
@@ -52,10 +52,9 @@ fun GamesScreen(
     gameTableService: AbstractGameTableService
 ) {
     var games by remember { mutableStateOf(emptyList<Game>()) }
-    var isDialogOpen by remember { mutableStateOf(false) }
-    var formData by remember {
-        mutableStateOf(GameFormData())
-    }
+    var isAddGameDialogOpen by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
 
     fun loadData() {
         CoroutineScope(Dispatchers.IO).async {
@@ -67,11 +66,20 @@ fun GamesScreen(
         loadData()
     }
 
-    fun resetForm() {
-        formData = GameFormData()
-    }
+    fun handleCreateGame(name: String, description: String, coverUrl: String, diskSpace: Int) {
+        Log.v("app", "form data: $name, $description, $coverUrl, $diskSpace")
+        CoroutineScope(Dispatchers.IO).async {
 
-    val context = LocalContext.current
+            val result = gameService.create(name, description, coverUrl, diskSpace)
+            parentActivity.runOnUiThread {
+                Toast
+                    .makeText(context, result.message, Toast.LENGTH_SHORT)
+                    .show()
+            }
+            loadData()
+
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -98,7 +106,7 @@ fun GamesScreen(
             }
 
             Button(
-                onClick = { isDialogOpen = true },
+                onClick = { isAddGameDialogOpen = true },
                 modifier = Modifier.height(36.dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(16.dp))
@@ -150,40 +158,14 @@ fun GamesScreen(
         }
     }
 
-    if (isDialogOpen) {
-        AddGameDialog(
-            formData = formData,
-            onFormDataChange = { formData = it },
-            onDismiss = {
-                isDialogOpen = false
-                resetForm()
-            },
-            onSubmit = {
-                if (formData.name.isBlank() || formData.description.isBlank()) {
-                    Toast.makeText(context, "Заполните название и описание", Toast.LENGTH_SHORT)
-                        .show()
-                    return@AddGameDialog
-                }
-
-                val newGame = Game(
-                    id = System.currentTimeMillis().toString(),
-                    name = formData.name,
-                    description = formData.description,
-                    coverUrl = formData.coverUrl,
-                    diskSpace = formData.diskSpace
-                )
-
-                CoroutineScope(Dispatchers.IO).async {
-                    gameService.create(newGame)
-                    parentActivity.runOnUiThread {
-                        Toast.makeText(context, "Игра добавлена", Toast.LENGTH_SHORT).show()
-                    }
-                    isDialogOpen = false
-                    resetForm()
-                    loadData()
-                }
-            }
-        )
-    }
+    AddGameDialog(
+        show = isAddGameDialogOpen,
+        onDismiss = {
+            isAddGameDialogOpen = false
+        },
+        onCreateGameTable = { n, d, c, ds ->
+            handleCreateGame(n, d, c, ds)
+            isAddGameDialogOpen = false
+        }
+    )
 }
-

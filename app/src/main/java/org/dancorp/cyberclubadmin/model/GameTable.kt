@@ -2,7 +2,6 @@ package org.dancorp.cyberclubadmin.model
 
 import org.dancorp.cyberclubadmin.util.Mappable
 import org.dancorp.cyberclubadmin.util.WithId
-import kotlin.collections.hashMapOf
 
 data class GameTable(
     val id: String,
@@ -14,7 +13,19 @@ data class GameTable(
     val gpu: String,
     val hourlyRate: Int,
     val installedGames: List<String>
-): Mappable, WithId {
+) : Mappable, WithId {
+
+    constructor() : this(
+        "",
+        0,
+        "",
+        0,
+        0,
+        0,
+        "",
+        0,
+        emptyList()
+    )
 
     override fun id(): String {
         return this.id
