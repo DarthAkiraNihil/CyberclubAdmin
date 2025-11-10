@@ -2,13 +2,17 @@ package org.dancorp.cyberclubadmin.ui.screens
 
 import android.app.Activity
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,12 +32,22 @@ import kotlinx.coroutines.async
 import org.dancorp.cyberclubadmin.model.User
 import org.dancorp.cyberclubadmin.service.AbstractAuthService
 import org.dancorp.cyberclubadmin.service.AbstractUserService
+import org.dancorp.cyberclubadmin.ui.composables.session.ActiveSessionsTab
+import org.dancorp.cyberclubadmin.ui.composables.session.CompletedSessionsTab
 import org.dancorp.cyberclubadmin.ui.composables.user.PendingUserCard
+import org.dancorp.cyberclubadmin.ui.composables.user.PendingUsersTab
 import org.dancorp.cyberclubadmin.ui.composables.user.VerifiedUserCard
+import org.dancorp.cyberclubadmin.ui.composables.user.VerifiedUsersTab
 import org.dancorp.cyberclubadmin.ui.theme.body2
 import org.dancorp.cyberclubadmin.ui.theme.h5
 import org.dancorp.cyberclubadmin.ui.widgets.AlertCard
+import org.dancorp.cyberclubadmin.ui.widgets.TabButton
 
+
+private enum class UsersScreenTab {
+    PENDING_USERS,
+    VERIFIED_USERS
+}
 @Composable
 fun UsersScreen(
     parentActivity: Activity,
@@ -42,6 +56,9 @@ fun UsersScreen(
 ) {
     var users by remember { mutableStateOf(emptyList<User>()) }
     var currentUser by remember { mutableStateOf<User?>(null) }
+    var selectedTab by remember { mutableStateOf(UsersScreenTab.PENDING_USERS) }
+
+
     val context = LocalContext.current
 
     fun loadData() {
@@ -91,49 +108,37 @@ fun UsersScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Pending users
-        if (pendingUsers.isNotEmpty()) {
-            Text(
-                text = "Ожидают подтверждения",
-                style = MaterialTheme.typography.body2,
-                color = Color.Gray
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+                .background(Color.LightGray.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
+        ) {
+            TabButton(
+                text = "Ожидающие подтверждения",
+                isSelected = selectedTab == UsersScreenTab.PENDING_USERS,
+                onClick = { selectedTab = UsersScreenTab.PENDING_USERS },
+                modifier = Modifier.weight(1f)
             )
-            Spacer(modifier = Modifier.height(8.dp))
-
-            LazyColumn {
-                items(pendingUsers) { user ->
-                    PendingUserCard(
-                        user = user,
-                        currentUser = currentUser,
-                        onVerify = { handleVerifyUser(user.id) }
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-            }
-            Spacer(modifier = Modifier.height(16.dp))
+            TabButton(
+                text = "Подтверждённые",
+                isSelected = selectedTab == UsersScreenTab.VERIFIED_USERS,
+                onClick = { selectedTab = UsersScreenTab.VERIFIED_USERS },
+                modifier = Modifier.weight(1f)
+            )
         }
 
-        // Verified users
-        Text(
-            text = "Подтвержденные администраторы",
-            style = MaterialTheme.typography.body2,
-            color = Color.Gray
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-
-        if (verifiedUsers.isEmpty()) {
-            AlertCard(message = "Нет пользователей")
-        } else {
-            LazyColumn {
-                items(verifiedUsers) { user ->
-                    VerifiedUserCard(
-                        user = user,
-                        currentUser = currentUser,
-                        allUsers = users
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-            }
+        when (selectedTab) {
+            UsersScreenTab.PENDING_USERS -> PendingUsersTab(
+                pendingUsers = pendingUsers,
+                currentUser = currentUser,
+                handleVerifyUser = ::handleVerifyUser
+            )
+            UsersScreenTab.VERIFIED_USERS -> VerifiedUsersTab(
+                verifiedUsers = verifiedUsers,
+                currentUser = currentUser,
+                users = users,
+            )
         }
     }
 }

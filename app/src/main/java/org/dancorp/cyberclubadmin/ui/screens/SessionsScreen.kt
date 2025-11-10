@@ -1,8 +1,8 @@
 package org.dancorp.cyberclubadmin.ui.screens
 
 import android.app.Activity
-import android.util.Log
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,8 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
@@ -36,7 +35,6 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
-import kotlinx.coroutines.runBlocking
 import org.dancorp.cyberclubadmin.model.GameTable
 import org.dancorp.cyberclubadmin.model.Notification
 import org.dancorp.cyberclubadmin.model.Session
@@ -45,14 +43,19 @@ import org.dancorp.cyberclubadmin.service.AbstractGameTableService
 import org.dancorp.cyberclubadmin.service.AbstractNotificationService
 import org.dancorp.cyberclubadmin.service.AbstractSessionService
 import org.dancorp.cyberclubadmin.service.AbstractSubscriptionService
-import org.dancorp.cyberclubadmin.ui.composables.session.CompletedSessionCard
+import org.dancorp.cyberclubadmin.ui.composables.session.ActiveSessionsTab
+import org.dancorp.cyberclubadmin.ui.composables.session.CompletedSessionsTab
 import org.dancorp.cyberclubadmin.ui.composables.session.CreateSessionDialog
-import org.dancorp.cyberclubadmin.ui.composables.session.ActiveSessionCard
 import org.dancorp.cyberclubadmin.ui.theme.body2
 import org.dancorp.cyberclubadmin.ui.theme.h5
-import org.dancorp.cyberclubadmin.ui.widgets.AlertCard
+import org.dancorp.cyberclubadmin.ui.widgets.TabButton
 import java.util.Date
 import kotlin.math.max
+
+private enum class SessionsScreenTab {
+    ACTIVE_SESSIONS,
+    COMPLETED_SESSIONS
+}
 
 @Composable
 fun SessionsScreen(
@@ -67,15 +70,15 @@ fun SessionsScreen(
     var availableTables by remember { mutableStateOf(emptyList<GameTable>()) }
 
     var isCreateDialogOpen by remember { mutableStateOf(false) }
+    var selectedTab by remember { mutableStateOf(SessionsScreenTab.ACTIVE_SESSIONS) }
 
     val context = LocalContext.current
 
     fun loadData() {
         CoroutineScope(Dispatchers.IO).async {
-            sessions = sessionService.list()
+            sessions = sessionService.list().sortedByDescending { it.active }
             subscriptions = subscriptionService.listActive()
             availableTables = gameTableService.listAvailableTables()
-            Log.i("app", "AVATA: $availableTables")
         }
     }
 
@@ -170,17 +173,14 @@ fun SessionsScreen(
         }
     }
 
-    val activeSessions = sessions.filter { it.active }
-    val completedSessions = sessions.filter { !it.active }.take(5)
 
-    Log.i("app", "ACT: $activeSessions")
-    Log.i("app", "CO: $completedSessions")
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
+
         // Header
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -200,58 +200,62 @@ fun SessionsScreen(
                 )
             }
 
-            Button(
-                onClick = { isCreateDialogOpen = true },
-                modifier = Modifier.height(36.dp)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Создать")
+            if (selectedTab == SessionsScreenTab.ACTIVE_SESSIONS) {
+
+                Button(
+                    onClick = { isCreateDialogOpen = true },
+                    modifier = Modifier.height(36.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = "Add",
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Создать")
+                }
+
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        if (activeSessions.isEmpty()) {
-            AlertCard(message = "Нет активных сессий. Создайте новую сессию.")
-        }
-
-        // Active Sessions
-        LazyColumn {
-            items(activeSessions) { session ->
-                val table = runBlocking { gameTableService.get(session.tableId)!! }
-                val subscription = subscriptions.find { it.id == session.subscriptionId }
-                val isExpired = session.remainingMinutes <= 0
-
-                ActiveSessionCard(
-                    session = session,
-                    table = table,
-                    subscription = subscription,
-                    isExpired = isExpired,
-                    onExtendSession = { handleExtendSession(session.id) },
-                    onEndSession = { handleEndSession(session.id) }
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-        }
-
-        // Completed Sessions
-        if (completedSessions.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(24.dp))
-            Text(
-                text = "Завершенные сессии",
-                style = MaterialTheme.typography.body2,
-                color = Color.Gray
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+                .background(Color.LightGray.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
+        ) {
+            TabButton(
+                text = "Активные",
+                isSelected = selectedTab == SessionsScreenTab.ACTIVE_SESSIONS,
+                onClick = { selectedTab = SessionsScreenTab.ACTIVE_SESSIONS },
+                modifier = Modifier.weight(1f)
             )
-            Spacer(modifier = Modifier.height(8.dp))
-
-            LazyColumn {
-                items(completedSessions) { session ->
-                    CompletedSessionCard(session = session)
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-            }
+            TabButton(
+                text = "Завершённые",
+                isSelected = selectedTab == SessionsScreenTab.COMPLETED_SESSIONS,
+                onClick = { selectedTab = SessionsScreenTab.COMPLETED_SESSIONS },
+                modifier = Modifier.weight(1f)
+            )
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        when (selectedTab) {
+            SessionsScreenTab.ACTIVE_SESSIONS -> ActiveSessionsTab(
+                sessions = sessions.filter { it.active },
+                subscriptions = subscriptions,
+                gameTableService = gameTableService,
+                handleExtendSession = ::handleExtendSession,
+                handleEndSession = ::handleEndSession,
+            )
+
+            SessionsScreenTab.COMPLETED_SESSIONS -> CompletedSessionsTab(
+                sessions = sessions.filter { !it.active },
+            )
+        }
+
     }
 
     // Create Session Dialog
