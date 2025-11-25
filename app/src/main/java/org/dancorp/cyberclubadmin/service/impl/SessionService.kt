@@ -44,6 +44,7 @@ class SessionService(
                 val fix = session.copy(active = false, remainingMinutes = 0)
                 result.add(fix)
                 this.update(session.id, fix)
+                this.notificationService.notifySessionExpired(fix)
             } else {
                 result.add(session.copy(remainingMinutes = minutesLeft))
             }

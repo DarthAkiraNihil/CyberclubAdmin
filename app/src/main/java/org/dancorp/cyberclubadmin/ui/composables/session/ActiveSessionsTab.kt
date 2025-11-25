@@ -15,6 +15,7 @@ import kotlinx.coroutines.runBlocking
 import org.dancorp.cyberclubadmin.model.Session
 import org.dancorp.cyberclubadmin.model.Subscription
 import org.dancorp.cyberclubadmin.service.AbstractGameTableService
+import org.dancorp.cyberclubadmin.service.AbstractNotificationService
 import org.dancorp.cyberclubadmin.service.AbstractSessionService
 import org.dancorp.cyberclubadmin.ui.widgets.AlertCard
 
@@ -24,6 +25,7 @@ fun ActiveSessionsTab(
     subscriptions: List<Subscription>,
     sessionService: AbstractSessionService,
     gameTableService: AbstractGameTableService,
+    notificationService: AbstractNotificationService,
     handleExtendSession: (String) -> Unit,
     handleEndSession: (String) -> Unit,
 ) {
@@ -49,6 +51,9 @@ fun ActiveSessionsTab(
                     onTickTack = { session ->
                         CoroutineScope(Dispatchers.IO).async {
                             sessionService.update(session.id, session)
+                            if (session.remainingMinutes <= 0) {
+                                notificationService.notifySessionExpired(session)
+                            }
                         }
                     }
                 )
