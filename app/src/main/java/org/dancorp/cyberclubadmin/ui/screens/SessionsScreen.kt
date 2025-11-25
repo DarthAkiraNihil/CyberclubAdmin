@@ -205,6 +205,7 @@ fun SessionsScreen(
                 subscriptions = subscriptions,
                 sessionService = sessionService,
                 gameTableService = gameTableService,
+                notificationService = notificationService,
                 handleExtendSession = ::handleExtendSession,
                 handleEndSession = ::handleEndSession,
             )
