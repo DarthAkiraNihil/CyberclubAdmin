@@ -10,8 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -32,15 +30,10 @@ import kotlinx.coroutines.async
 import org.dancorp.cyberclubadmin.model.User
 import org.dancorp.cyberclubadmin.service.AbstractAuthService
 import org.dancorp.cyberclubadmin.service.AbstractUserService
-import org.dancorp.cyberclubadmin.ui.composables.session.ActiveSessionsTab
-import org.dancorp.cyberclubadmin.ui.composables.session.CompletedSessionsTab
-import org.dancorp.cyberclubadmin.ui.composables.user.PendingUserCard
 import org.dancorp.cyberclubadmin.ui.composables.user.PendingUsersTab
-import org.dancorp.cyberclubadmin.ui.composables.user.VerifiedUserCard
 import org.dancorp.cyberclubadmin.ui.composables.user.VerifiedUsersTab
 import org.dancorp.cyberclubadmin.ui.theme.body2
 import org.dancorp.cyberclubadmin.ui.theme.h5
-import org.dancorp.cyberclubadmin.ui.widgets.AlertCard
 import org.dancorp.cyberclubadmin.ui.widgets.TabButton
 
 
@@ -84,6 +77,18 @@ fun UsersScreen(
 
     }
 
+    fun handleRevokeUserVerification(userId: String) {
+
+        CoroutineScope(Dispatchers.IO).async {
+            userService.revoke(userId)
+            parentActivity.runOnUiThread {
+                Toast.makeText(context, "Верификация пользователя была отозвана", Toast.LENGTH_SHORT).show()
+            }
+            loadData()
+        }
+
+    }
+
     val pendingUsers = users.filter { !it.verified }
     val verifiedUsers = users.filter { it.verified }
 
@@ -115,7 +120,7 @@ fun UsersScreen(
                 .background(Color.LightGray.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
         ) {
             TabButton(
-                text = "Ожидающие подтверждения",
+                text = "Заявки",
                 isSelected = selectedTab == UsersScreenTab.PENDING_USERS,
                 onClick = { selectedTab = UsersScreenTab.PENDING_USERS },
                 modifier = Modifier.weight(1f)
@@ -128,16 +133,20 @@ fun UsersScreen(
             )
         }
 
+        Spacer(modifier = Modifier.height(16.dp))
+
         when (selectedTab) {
             UsersScreenTab.PENDING_USERS -> PendingUsersTab(
                 pendingUsers = pendingUsers,
                 currentUser = currentUser,
-                handleVerifyUser = ::handleVerifyUser
+                handleVerifyUser = ::handleVerifyUser,
+                handleRejectUser = ::handleRevokeUserVerification,
             )
             UsersScreenTab.VERIFIED_USERS -> VerifiedUsersTab(
                 verifiedUsers = verifiedUsers,
                 currentUser = currentUser,
                 users = users,
+                handleRevokeUserVerification = ::handleRevokeUserVerification
             )
         }
     }

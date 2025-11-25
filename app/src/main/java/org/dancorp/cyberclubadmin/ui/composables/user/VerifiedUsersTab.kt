@@ -14,7 +14,8 @@ import org.dancorp.cyberclubadmin.ui.widgets.AlertCard
 fun VerifiedUsersTab(
     verifiedUsers: List<User>,
     currentUser: User?,
-    users: List<User>
+    users: List<User>,
+    handleRevokeUserVerification: (String) -> Unit
 ) {
     if (verifiedUsers.isEmpty()) {
         AlertCard(message = "Нет пользователей")
@@ -24,7 +25,8 @@ fun VerifiedUsersTab(
                 VerifiedUserCard(
                     user = user,
                     currentUser = currentUser,
-                    allUsers = users
+                    allUsers = users,
+                    onRevokeVerification = { handleRevokeUserVerification(user.id) }
                 )
                 Spacer(modifier = Modifier.height(8.dp))
             }

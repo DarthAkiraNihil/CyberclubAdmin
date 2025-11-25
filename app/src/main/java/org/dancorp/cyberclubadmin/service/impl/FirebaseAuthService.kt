@@ -21,6 +21,7 @@ class FirebaseAuthService(firebase: Firebase, private val userService: AbstractU
         private const val ERROR_INVALID_CREDENTIALS = "Неверный email или пароль"
         private const val ERROR_USER_IS_NOT_VERIFIED = "Ваш аккаунт не подтвержден. Обратитесь к администратору для подтверждения вашей учётной записи"
         private const val ERROR_SOMETHING_WENT_WRONG = "Что-то пошло не так"
+        private const val ERROR_VERIFICATION_REJECTED = "Запрос на подтверждение был отклонён. Данный пользователь не имеет права регистрироваться в системе"
         private const val SIGN_UP_SUCCESS_FIRST = "Регистрация успешна! Вы первый пользователь и автоматически подтверждены"
         private const val SIGN_UP_SUCCESS = "Регистрация успешна! Ожидайте подтверждения от администратора"
         private const val SIGN_IN_SUCCESS = "Вход выполнен успешно!"
@@ -44,6 +45,11 @@ class FirebaseAuthService(firebase: Firebase, private val userService: AbstractU
             }
 
             val user = userService.findByEmail(result.user!!.email!!)!!
+            if (user.revoked) {
+                handler(ResultStateWithObject(ok = false, ERROR_INVALID_CREDENTIALS))
+                return@async
+            }
+
             if (!user.verified) {
                 handler(ResultStateWithObject(ok = false, ERROR_USER_IS_NOT_VERIFIED))
                 return@async
@@ -74,8 +80,12 @@ class FirebaseAuthService(firebase: Firebase, private val userService: AbstractU
 
         CoroutineScope(Dispatchers.IO).async {
             val user: User? = userService.findByEmail(email)
-            if (user != null) {
+            if (user != null && !user.revoked) {
                 handler(ResultStateWithObject(ok = false, ERROR_USER_ALREADY_EXISTS))
+            }
+
+            if (user?.revoked == true) {
+                handler(ResultStateWithObject(ok = false, ERROR_VERIFICATION_REJECTED))
             }
 
             val result = auth
@@ -91,6 +101,7 @@ class FirebaseAuthService(firebase: Firebase, private val userService: AbstractU
                 id = System.currentTimeMillis().toString(),
                 email = email,
                 verified = !hasVerifiedUsers,
+                revoked = false,
                 verifiedBy = null,
                 createdAt = Date()
             )

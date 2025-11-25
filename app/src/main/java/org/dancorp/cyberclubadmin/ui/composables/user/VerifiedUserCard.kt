@@ -4,12 +4,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.Badge
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -31,7 +35,8 @@ import java.util.Locale
 fun VerifiedUserCard(
     user: User,
     currentUser: User?,
-    allUsers: List<User>
+    allUsers: List<User>,
+    onRevokeVerification: () -> Unit
 ) {
     val isCurrentUser = user.id == currentUser?.id
     val verifier = user.verifiedBy?.let { verifierId ->
@@ -74,6 +79,24 @@ fun VerifiedUserCard(
                     style = MaterialTheme.typography.body2,
                     color = Color.Gray
                 )
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Button(
+                onClick = onRevokeVerification,
+                modifier = Modifier
+                    .height(36.dp)
+                    .fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+            ) {
+                Icon(
+                    Icons.Default.Cancel,
+                    contentDescription = "RevokeVerification",
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Отозвать подтверждение")
             }
         }
     }

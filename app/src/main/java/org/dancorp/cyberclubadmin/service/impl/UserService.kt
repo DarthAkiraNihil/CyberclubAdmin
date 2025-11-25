@@ -11,7 +11,8 @@ class UserService(private val repo: AbstractRepository<User>): AbstractUserServi
     }
 
     override suspend fun list(): List<User> {
-        return this.repo.list()
+        val all = this.repo.list()
+        return all.filter { !it.revoked }
     }
 
     override suspend fun create(obj: User) {
@@ -47,7 +48,14 @@ class UserService(private val repo: AbstractRepository<User>): AbstractUserServi
     }
 
     override suspend fun revoke(userId: String): Boolean {
-        TODO("Not yet implemented")
+        val user = this.get(userId)!!
+        this.update(
+            userId,
+            user.copy(
+                revoked = true,
+            )
+        )
+        return true
     }
 
     override suspend fun findByEmail(email: String): User? {

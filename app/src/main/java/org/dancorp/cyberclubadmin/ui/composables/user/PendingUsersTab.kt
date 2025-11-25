@@ -8,19 +8,26 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.dancorp.cyberclubadmin.model.User
+import org.dancorp.cyberclubadmin.ui.widgets.AlertCard
 
 @Composable
 fun PendingUsersTab(
     pendingUsers: List<User>,
     currentUser: User?,
-    handleVerifyUser: (String) -> Unit
+    handleVerifyUser: (String) -> Unit,
+    handleRejectUser: (String) -> Unit,
 ) {
+    if (pendingUsers.isEmpty()) {
+        AlertCard(message = "В данный момент нет пользователей, ожидающих подтверждения")
+    }
+
     LazyColumn {
         items(pendingUsers) { user ->
             PendingUserCard(
                 user = user,
                 currentUser = currentUser,
-                onVerify = { handleVerifyUser(user.id) }
+                onVerify = { handleVerifyUser(user.id) },
+                onReject = { handleRejectUser(user.id) },
             )
             Spacer(modifier = Modifier.height(8.dp))
         }

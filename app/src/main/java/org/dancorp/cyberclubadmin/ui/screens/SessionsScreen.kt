@@ -86,47 +86,6 @@ fun SessionsScreen(
         loadData()
     }
 
-    suspend fun updateSessions() {
-        val activeSessions = sessionService.list()
-        val updatedSessions = activeSessions.map { session ->
-
-            if (session.active) {
-                session
-                return
-            }
-
-            val elapsed = (System.currentTimeMillis() - session.startTime.time) / 60000
-            val remaining = session.bookedMinutes - elapsed.toInt()
-
-            if (remaining <= 0) {
-
-                notificationService.create(
-                    Notification(
-                        id = System.currentTimeMillis().toString(),
-                        type = "session_expired",
-                        message = "Время сессии на столе ${session.tableId} истекло!",
-                        timestamp = Date(),
-                        isRead = false,
-                        relatedId = session.id
-                    )
-                )
-                parentActivity.runOnUiThread {
-                    Toast.makeText(context, "Время сессии на столе ${session.tableId} истекло!", Toast.LENGTH_SHORT).show()
-                }
-            }
-
-            session.copy(remainingMinutes = max(0, remaining))
-
-        }
-
-        updatedSessions.forEach { s -> {
-            CoroutineScope(Dispatchers.IO).async {
-                sessionService.update(s.id, s)
-            }
-        } }
-        sessions = updatedSessions
-    }
-
     fun handleCreateSession(sub: Subscription, table: GameTable, bookedHours: Int, payAsDebt: Boolean) {
 
         CoroutineScope(Dispatchers.IO).async {
@@ -172,8 +131,6 @@ fun SessionsScreen(
             loadData()
         }
     }
-
-
 
     Column(
         modifier = Modifier

@@ -52,6 +52,10 @@ fun App(
 
     LocalContext.current
 
+    LaunchedEffect(Unit) {
+
+    }
+
     fun updateUnreadCount() {
         CoroutineScope(Dispatchers.IO).async {
             val notifications = services.notifications.list()
