@@ -70,7 +70,7 @@ fun NotificationsScreen(
             val index = allNotifications.indexOfFirst { it.id == notificationId }
 
             if (index != -1) {
-                allNotifications[index] = allNotifications[index].copy(isRead = true)
+                allNotifications[index] = allNotifications[index].copy(read = true)
                 notificationService.update(allNotifications[index].id, allNotifications[index])
                 loadData()
             }
@@ -91,13 +91,13 @@ fun NotificationsScreen(
     }
 
     fun handleMarkAllAsRead() {
-        notifications.map { it.copy(isRead = true) }
+        notifications.map { it.copy(read = true) }
         // Store.saveNotifications(allNotifications)
         Toast.makeText(context, "Все уведомления прочитаны", Toast.LENGTH_SHORT).show()
         loadData()
     }
 
-    val unreadCount = notifications.count { !it.isRead }
+    val unreadCount = notifications.count { !it.read }
 
     Column(
         modifier = Modifier

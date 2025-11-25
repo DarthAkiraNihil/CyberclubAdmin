@@ -36,7 +36,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
-import org.dancorp.cyberclubadmin.getMinutesLeft
 import org.dancorp.cyberclubadmin.model.GameTable
 import org.dancorp.cyberclubadmin.model.Session
 import org.dancorp.cyberclubadmin.model.Subscription
@@ -44,7 +43,6 @@ import org.dancorp.cyberclubadmin.ui.composables.shared.GridLayout
 import org.dancorp.cyberclubadmin.ui.theme.body2
 import org.dancorp.cyberclubadmin.ui.theme.h6
 import java.text.SimpleDateFormat
-import java.util.Calendar
 import java.util.Locale
 import kotlin.time.Duration.Companion.minutes
 
@@ -57,20 +55,18 @@ fun ActiveSessionCard(
     subscription: Subscription?,
     isExpired: Boolean,
     onExtendSession: () -> Unit,
-    onEndSession: () -> Unit
+    onEndSession: () -> Unit,
+    onTickTack: (session: Session) -> Unit
 ) {
 
-    val cal = Calendar.getInstance()
-    cal.time = session.createdAt
-    cal.add(Calendar.MINUTE, session.bookedMinutes)
-
-    var remainingTime by remember { mutableIntStateOf(getMinutesLeft(cal.time)) }
+    var remainingTime by remember { mutableIntStateOf(session.remainingMinutes) }
 
     LaunchedEffect(Unit) {
 
         while (remainingTime > 0) {
             delay(1.minutes)
             remainingTime-- // Decrement the remaining time
+            onTickTack(session.copy(remainingMinutes = remainingTime))
             Log.i("app", "tick tack $remainingTime")
         }
 

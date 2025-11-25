@@ -8,16 +8,21 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import org.dancorp.cyberclubadmin.model.Session
 import org.dancorp.cyberclubadmin.model.Subscription
 import org.dancorp.cyberclubadmin.service.AbstractGameTableService
+import org.dancorp.cyberclubadmin.service.AbstractSessionService
 import org.dancorp.cyberclubadmin.ui.widgets.AlertCard
 
 @Composable
 fun ActiveSessionsTab(
     sessions: List<Session>,
     subscriptions: List<Subscription>,
+    sessionService: AbstractSessionService,
     gameTableService: AbstractGameTableService,
     handleExtendSession: (String) -> Unit,
     handleEndSession: (String) -> Unit,
@@ -40,7 +45,12 @@ fun ActiveSessionsTab(
                     subscription = subscription,
                     isExpired = isExpired,
                     onExtendSession = { handleExtendSession(session.id) },
-                    onEndSession = { handleEndSession(session.id) }
+                    onEndSession = { handleEndSession(session.id) },
+                    onTickTack = { session ->
+                        CoroutineScope(Dispatchers.IO).async {
+                            sessionService.update(session.id, session)
+                        }
+                    }
                 )
                 Spacer(modifier = Modifier.height(8.dp))
             }

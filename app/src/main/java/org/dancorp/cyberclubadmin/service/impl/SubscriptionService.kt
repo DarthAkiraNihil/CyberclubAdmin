@@ -104,8 +104,10 @@ class SubscriptionService(private val repo: AbstractRepository<Subscription>): A
             return ResultState(ok = false, ERROR_ENTER_CORRECT_DEBT_AMOUNT)
         }
 
+        val finalDebt = if (subscription.debt - paidDebtAmount < 0) 0.0 else subscription.debt - paidDebtAmount
         val updated = subscription.copy(
-            debt = if (subscription.debt - paidDebtAmount < 0) 0.0 else subscription.debt - paidDebtAmount
+            debt = finalDebt,
+            unpaidSessions = if (finalDebt > 0) subscription.unpaidSessions else 0
         )
         this.repo.update(subscription.id, updated)
         return ResultState(ok = true, "Оплачено $paidDebtAmount ₽")

@@ -9,7 +9,7 @@ data class Notification(
     val type: String,
     val message: String,
     val timestamp: Date,
-    val isRead: Boolean,
+    val read: Boolean,
     val relatedId: String?
 ): Mappable, WithId {
 
@@ -23,7 +23,7 @@ data class Notification(
             "type" to this.type,
             "message" to this.message,
             "timestamp" to this.timestamp,
-            "isRead" to this.isRead,
+            "read" to this.read,
             "relatedId" to this.relatedId,
         )
     }

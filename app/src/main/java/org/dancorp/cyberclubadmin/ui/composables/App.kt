@@ -5,8 +5,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -23,11 +27,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import org.dancorp.cyberclubadmin.model.User
 import org.dancorp.cyberclubadmin.service.Services
+import org.dancorp.cyberclubadmin.ui.composables.notification.NotificationsTabButton
 import org.dancorp.cyberclubadmin.ui.composables.shared.BottomNavigationBar
 import org.dancorp.cyberclubadmin.ui.composables.shared.Screen
 import org.dancorp.cyberclubadmin.ui.screens.AuthScreen
@@ -48,34 +55,15 @@ fun App(
 ) {
     var currentUser by remember { mutableStateOf<User?>(null) }
     var currentScreen by remember { mutableStateOf(Screen.SESSIONS) }
-    var unreadCount by remember { mutableIntStateOf(0) }
 
     LocalContext.current
-
-    LaunchedEffect(Unit) {
-
-    }
-
-    fun updateUnreadCount() {
-        CoroutineScope(Dispatchers.IO).async {
-            val notifications = services.notifications.list()
-            val unread = notifications.count { !it.isRead }
-            unreadCount = unread
-        }
-    }
 
     LaunchedEffect(Unit) {
         CoroutineScope(Dispatchers.IO).async {
             val user = services.auth.currentUser
             currentUser = user
-
-            if (user != null) {
-                updateUnreadCount()
-            }
         }
     }
-
-
 
     fun handleLoginSuccess(user: User) {
         currentUser = user
@@ -83,9 +71,9 @@ fun App(
 
     fun handleLogout() {
         // Show confirmation dialog
-        // Store.setCurrentUser(null)
         currentUser = null
         currentScreen = Screen.SESSIONS
+        services.auth.signOut()
     }
 
     if (currentUser == null) {
@@ -114,6 +102,13 @@ fun App(
                     }
                 },
                 actions = {
+                    NotificationsTabButton(
+                        currentUser,
+                        services.notifications,
+                    ) {
+                        currentScreen = Screen.NOTIFICATIONS
+                    }
+
                     IconButton(onClick = { handleLogout() }) {
                         Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Logout")
                     }
@@ -125,12 +120,8 @@ fun App(
         bottomBar = {
             BottomNavigationBar(
                 currentScreen = currentScreen,
-                unreadCount = unreadCount,
                 onScreenChange = { screen ->
                     currentScreen = screen
-                    if (screen == Screen.NOTIFICATIONS) {
-                        // Update unread count after a delay
-                    }
                 }
             )
         },

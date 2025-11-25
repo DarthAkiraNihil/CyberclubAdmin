@@ -6,6 +6,7 @@ import org.dancorp.cyberclubadmin.model.GameTable
 import org.dancorp.cyberclubadmin.model.Session
 import org.dancorp.cyberclubadmin.model.Subscription
 import org.dancorp.cyberclubadmin.service.AbstractGameTableService
+import org.dancorp.cyberclubadmin.service.AbstractNotificationService
 import org.dancorp.cyberclubadmin.service.AbstractSessionService
 import org.dancorp.cyberclubadmin.service.AbstractSubscriptionService
 import org.dancorp.cyberclubadmin.shared.ResultStateWithObject
@@ -17,6 +18,7 @@ class SessionService(
     private val repo: AbstractRepository<Session>,
     private val gameTableService: AbstractGameTableService,
     private val subscriptionService: AbstractSubscriptionService,
+    private val notificationService: AbstractNotificationService,
 ): AbstractSessionService {
 
     companion object {
@@ -37,12 +39,13 @@ class SessionService(
         for (session in all) {
             cal.time = session.createdAt
             cal.add(Calendar.MINUTE, session.bookedMinutes)
-            if (getMinutesLeft(cal.time) <= 0) {
-                val fix = session.copy(active = false)
+            val minutesLeft = getMinutesLeft(cal.time)
+            if (minutesLeft <= 0) {
+                val fix = session.copy(active = false, remainingMinutes = 0)
                 result.add(fix)
                 this.update(session.id, fix)
             } else {
-                result.add(session)
+                result.add(session.copy(remainingMinutes = minutesLeft))
             }
         }
         return result

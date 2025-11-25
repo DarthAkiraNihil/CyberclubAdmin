@@ -3,9 +3,17 @@ package org.dancorp.cyberclubadmin.service.impl
 import org.dancorp.cyberclubadmin.data.AbstractRepository
 import org.dancorp.cyberclubadmin.model.GameTable
 import org.dancorp.cyberclubadmin.model.Notification
+import org.dancorp.cyberclubadmin.model.Session
 import org.dancorp.cyberclubadmin.service.AbstractNotificationService
+import java.util.Date
 
 class NotificationService(private val repo: AbstractRepository<Notification>): AbstractNotificationService {
+
+    companion object {
+
+        private const val TYPE_SESSION_EXPIRED = "session_expired"
+
+    }
 
     override suspend fun get(id: String): Notification? {
         return this.repo.get(id)
@@ -28,5 +36,18 @@ class NotificationService(private val repo: AbstractRepository<Notification>): A
 
     override suspend fun delete(id: String) {
         this.repo.delete(id)
+    }
+
+    override suspend fun notifySessionExpired(session: Session) {
+        this.create(
+            Notification(
+                id = System.currentTimeMillis().toString(),
+                type = TYPE_SESSION_EXPIRED,
+                message = "Время сессии на столе ${session.tableId} истекло!",
+                timestamp = Date(),
+                read = false,
+                relatedId = session.id
+            )
+        )
     }
 }

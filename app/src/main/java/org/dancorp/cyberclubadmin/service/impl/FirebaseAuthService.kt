@@ -117,6 +117,10 @@ class FirebaseAuthService(firebase: Firebase, private val userService: AbstractU
         }
     }
 
+    override fun signOut() {
+        this.auth.signOut()
+    }
+
     override val currentUser: User?
         get() = this.current
 }

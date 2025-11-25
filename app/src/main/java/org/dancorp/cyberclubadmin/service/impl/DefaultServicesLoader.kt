@@ -13,12 +13,13 @@ class DefaultServicesLoader: ServicesLoader {
         val firebase = Firebase
         val repositories: Repositories = FirebaseRepositories(firebase)
 
+        val notificationService = NotificationService(repositories.notifications)
         val gameService = GameService(repositories.games)
         val gameTableService = GameTableService(repositories.gameTables, repositories.sessions, gameService)
         val subscriptionService = SubscriptionService(repositories.subscriptions)
         val subscriptionTypeService = SubscriptionTypeService(repositories.subscriptionTypes)
-        val sessionService = SessionService(repositories.sessions, gameTableService, subscriptionService)
-        val notificationService = NotificationService(repositories.notifications)
+        val sessionService = SessionService(repositories.sessions, gameTableService, subscriptionService, notificationService)
+
         val userService = UserService(repositories.users)
         val authService = FirebaseAuthService(firebase, userService)
 

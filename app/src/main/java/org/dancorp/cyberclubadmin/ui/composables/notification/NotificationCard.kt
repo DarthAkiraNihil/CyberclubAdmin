@@ -45,8 +45,8 @@ fun NotificationCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(containerColor = if (notification.isRead) Color(0xFFF8F9FA) else Color(0xFFEFF6FF)),
-        border = if (!notification.isRead) BorderStroke(1.dp, Color.Blue.copy(alpha = 0.3f)) else null
+        colors = CardDefaults.cardColors(containerColor = if (notification.read) Color(0xFFF8F9FA) else Color(0xFFEFF6FF)),
+        border = if (!notification.read) BorderStroke(1.dp, Color.Blue.copy(alpha = 0.3f)) else null
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             // Badges
@@ -66,7 +66,7 @@ fun NotificationCard(
                             Text("Напоминание", color = Color.White, fontSize = 10.sp)
                         }
                     }
-                    if (!notification.isRead) {
+                    if (!notification.read) {
                         Spacer(modifier = Modifier.width(4.dp))
                         Badge(
                             containerColor = Color.Transparent,
@@ -80,7 +80,7 @@ fun NotificationCard(
 
                 // Actions
                 Row {
-                    if (!notification.isRead) {
+                    if (!notification.read) {
                         IconButton(
                             onClick = onMarkAsRead,
                             modifier = Modifier.size(36.dp)

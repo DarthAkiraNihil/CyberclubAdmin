@@ -203,6 +203,7 @@ fun SessionsScreen(
             SessionsScreenTab.ACTIVE_SESSIONS -> ActiveSessionsTab(
                 sessions = sessions.filter { it.active },
                 subscriptions = subscriptions,
+                sessionService = sessionService,
                 gameTableService = gameTableService,
                 handleExtendSession = ::handleExtendSession,
                 handleEndSession = ::handleEndSession,

@@ -39,7 +39,9 @@ fun SubscriptionTypesTab(
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
             Button(
                 onClick = { isCreateTypeDialogOpen = true },
-                modifier = Modifier.height(36.dp)
+                modifier = Modifier
+                    .height(36.dp)
+                    .fillMaxWidth()
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(4.dp))

@@ -34,7 +34,6 @@ data class NavigationItem(
 @Composable
 fun BottomNavigationBar(
     currentScreen: Screen,
-    unreadCount: Int,
     onScreenChange: (Screen) -> Unit
 ) {
     val navigationItems = listOf(
@@ -42,7 +41,7 @@ fun BottomNavigationBar(
         NavigationItem(Screen.TABLES, "Столы", Icons.Default.Computer),
         NavigationItem(Screen.GAMES, "Игры", Icons.Default.SportsEsports),
         NavigationItem(Screen.SUBSCRIPTIONS, "Абонементы", Icons.Default.CreditCard),
-        NavigationItem(Screen.NOTIFICATIONS, "Уведомления", Icons.Default.Notifications),
+        // NavigationItem(Screen.NOTIFICATIONS, "Уведомления", Icons.Default.Notifications),
         NavigationItem(Screen.USERS, "Админы", Icons.Default.People)
     )
 
@@ -51,33 +50,17 @@ fun BottomNavigationBar(
         // elevation = 8.dp
     ) {
         navigationItems.forEach { item ->
-            val badgeCount = if (item.screen == Screen.NOTIFICATIONS) unreadCount else 0
-
             NavigationBarItem(
                 selected = currentScreen == item.screen,
                 onClick = { onScreenChange(item.screen) },
                 icon = {
-                    BadgedBox(
-                        badge = {
-                            if (badgeCount > 0) {
-                                Badge {
-                                    Text(
-                                        text = if (badgeCount > 9) "9+" else badgeCount.toString(),
-                                        color = Color.White,
-                                        fontSize = 10.sp
-                                    )
-                                }
-                            }
-                        }
-                    ) {
-                        Icon(
-                            imageVector = item.icon,
-                            contentDescription = item.label,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
+                    Icon(
+                        imageVector = item.icon,
+                        contentDescription = item.label,
+                        modifier = Modifier.size(24.dp)
+                    )
                 },
-                label = { Text(item.label, fontSize = 12.sp) },
+                label = { Text(item.label, fontSize = 10.sp) },
                 // selectedContentColor = Color.Blue,
                 // unselectedContentColor = Color.Gray,
                 alwaysShowLabel = true
