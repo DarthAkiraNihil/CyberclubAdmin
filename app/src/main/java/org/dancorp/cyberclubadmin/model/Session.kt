@@ -36,8 +36,8 @@ data class Session(
             "remainingMinutes" to this.remainingMinutes,
             "basePrice" to this.basePrice,
             "finalPrice" to this.finalPrice,
-            "isActive" to this.active,
-            "isPaidForDebt" to this.paidForDebt,
+            "active" to this.active,
+            "paidForDebt" to this.paidForDebt,
             "createdAt" to this.createdAt,
         )
     }

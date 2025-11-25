@@ -1,6 +1,7 @@
 package org.dancorp.cyberclubadmin.service.impl
 
 import org.dancorp.cyberclubadmin.data.AbstractRepository
+import org.dancorp.cyberclubadmin.getMinutesLeft
 import org.dancorp.cyberclubadmin.model.GameTable
 import org.dancorp.cyberclubadmin.model.Session
 import org.dancorp.cyberclubadmin.model.Subscription
@@ -8,6 +9,7 @@ import org.dancorp.cyberclubadmin.service.AbstractGameTableService
 import org.dancorp.cyberclubadmin.service.AbstractSessionService
 import org.dancorp.cyberclubadmin.service.AbstractSubscriptionService
 import org.dancorp.cyberclubadmin.shared.ResultStateWithObject
+import java.util.Calendar
 import java.util.Date
 import kotlin.math.min
 
@@ -28,7 +30,22 @@ class SessionService(
     }
 
     override suspend fun list(): List<Session> {
-        return this.repo.list()
+
+        val cal = Calendar.getInstance()
+        val all = this.repo.list()
+        val result = mutableListOf<Session>()
+        for (session in all) {
+            cal.time = session.createdAt
+            cal.add(Calendar.MINUTE, session.bookedMinutes)
+            if (getMinutesLeft(cal.time) <= 0) {
+                val fix = session.copy(active = false)
+                result.add(fix)
+                this.update(session.id, fix)
+            } else {
+                result.add(session)
+            }
+        }
+        return result
     }
 
     override suspend fun create(obj: Session) {

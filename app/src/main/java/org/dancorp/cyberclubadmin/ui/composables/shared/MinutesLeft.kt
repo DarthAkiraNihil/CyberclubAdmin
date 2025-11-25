@@ -8,8 +8,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import org.dancorp.cyberclubadmin.getMinutesLeft
 import java.util.Date
-import kotlin.math.ceil
 
 @Composable
 fun MinutesLeft(until: Date): Int {
@@ -30,8 +30,4 @@ fun MinutesLeft(until: Date): Int {
     }
 
     return value
-}
-
-private fun getMinutesLeft(until: Date): Int {
-    return ceil((until.time - Date().time) / 60_000.0).toInt()
 }

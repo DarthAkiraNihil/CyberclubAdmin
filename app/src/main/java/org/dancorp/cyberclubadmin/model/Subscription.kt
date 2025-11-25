@@ -44,7 +44,7 @@ data class Subscription(
             "expiryDate" to this.expiryDate,
             "debt" to this.debt,
             "unpaidSessions" to this.unpaidSessions,
-            "isActive" to this.active,
+            "active" to this.active,
         )
     }
 

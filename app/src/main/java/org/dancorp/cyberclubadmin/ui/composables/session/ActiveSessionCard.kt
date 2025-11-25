@@ -1,6 +1,7 @@
 package org.dancorp.cyberclubadmin.ui.composables.session
 
 import android.annotation.SuppressLint
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -23,22 +24,29 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
+import org.dancorp.cyberclubadmin.getMinutesLeft
 import org.dancorp.cyberclubadmin.model.GameTable
 import org.dancorp.cyberclubadmin.model.Session
 import org.dancorp.cyberclubadmin.model.Subscription
 import org.dancorp.cyberclubadmin.ui.composables.shared.GridLayout
-import org.dancorp.cyberclubadmin.ui.composables.shared.MinutesLeft
 import org.dancorp.cyberclubadmin.ui.theme.body2
 import org.dancorp.cyberclubadmin.ui.theme.h6
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+import kotlin.time.Duration.Companion.minutes
 
 
 @SuppressLint("DefaultLocale")
@@ -55,6 +63,18 @@ fun ActiveSessionCard(
     val cal = Calendar.getInstance()
     cal.time = session.createdAt
     cal.add(Calendar.MINUTE, session.bookedMinutes)
+
+    var remainingTime by remember { mutableIntStateOf(getMinutesLeft(cal.time)) }
+
+    LaunchedEffect(Unit) {
+
+        while (remainingTime > 0) {
+            delay(1.minutes)
+            remainingTime-- // Decrement the remaining time
+            Log.i("app", "tick tack $remainingTime")
+        }
+
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -104,7 +124,7 @@ fun ActiveSessionCard(
                 items = listOf(
                     Pair("Забронировано:", "${session.bookedMinutes / 60} ч ${session.bookedMinutes % 60} мин"),
 //                    Pair("Осталось:", "${session.remainingMinutes / 60} ч ${session.remainingMinutes % 60} мин"),
-                    Pair("Осталось:", "${MinutesLeft(cal.time)} мин"),
+                    Pair("Осталось:", "$remainingTime мин"),
                     Pair("Начало:", SimpleDateFormat("HH:mm", Locale.getDefault()).format(session.startTime)),
                     Pair("К оплате:", "${String.format("%.2f", session.finalPrice)} ₽")
                 ),
