@@ -81,6 +81,31 @@ fun GamesScreen(
         }
     }
 
+    fun handleDeleteGame(game: Game) {
+        CoroutineScope(Dispatchers.IO).async {
+            val isUsed = gameTableService.anyHasGameInstalled(game)
+
+            if (isUsed) {
+                parentActivity.runOnUiThread {
+                    Toast.makeText(
+                        context,
+                        "Нельзя удалить игру, установленную на столах",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+                return@async
+            }
+
+            // Show confirmation dialog
+            gameService.delete(game.id)
+            parentActivity.runOnUiThread {
+                Toast.makeText(context, "Игра удалена", Toast.LENGTH_SHORT)
+                    .show()
+            }
+            loadData()
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -126,30 +151,7 @@ fun GamesScreen(
                 items(games) { game ->
                     GameCard(
                         game = game,
-                        onDelete = {
-                            CoroutineScope(Dispatchers.IO).async {
-                                val isUsed = gameTableService.anyHasGameInstalled(game)
-
-                                if (isUsed) {
-                                    parentActivity.runOnUiThread {
-                                        Toast.makeText(
-                                            context,
-                                            "Нельзя удалить игру, установленную на столах",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    }
-                                    return@async
-                                }
-
-                                // Show confirmation dialog
-                                gameService.delete(game.id)
-                                parentActivity.runOnUiThread {
-                                    Toast.makeText(context, "Игра удалена", Toast.LENGTH_SHORT)
-                                        .show()
-                                }
-                                loadData()
-                            }
-                        },
+                        onDelete = { handleDeleteGame(game) },
                         gameTableService = gameTableService
                     )
                     Spacer(modifier = Modifier.height(8.dp))

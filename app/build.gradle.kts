@@ -70,4 +70,5 @@ dependencies {
     implementation("com.google.firebase:firebase-firestore")
     implementation("com.google.firebase:firebase-auth")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.3.6")
+    implementation("io.coil-kt:coil-compose:2.5.0")
 }

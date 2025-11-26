@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import kotlinx.coroutines.runBlocking
 import org.dancorp.cyberclubadmin.model.Game
 import org.dancorp.cyberclubadmin.service.AbstractGameTableService
@@ -66,8 +67,11 @@ fun GameCard(
                 contentAlignment = Alignment.Center
             ) {
                 if (game.coverUrl.isNotBlank()) {
-                    // Load image from URL - you'd use Coil or Glide in real implementation
-                    Box(modifier = Modifier.fillMaxSize())
+                    AsyncImage(
+                        model = game.coverUrl,
+                        contentDescription = "${game.name} cover",
+                        modifier = Modifier.fillMaxSize()
+                    )
                 } else {
                     Icon(
                         imageVector = Icons.Default.SportsEsports,
